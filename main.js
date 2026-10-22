@@ -123,20 +123,41 @@
   }
   addEventListener("resize", () => { buildField(); if (reduceMotion) drawField(0); });
 
+  // press and drag across the hero to plant a trail of flowers
   const hero = $(".hero");
+  const FLOWER_GAP = 26, MAX_FLOWERS = 160;
+  let planting = false, lastPlant = null;
+  function plant(x, y) {
+    const colors = [css("--accent"), "#e8d38c", "#c98d7a", "#f3f3e6"];
+    flowers.push({ x, y: y + 20, h: 18 + Math.random() * 14, g: 0, c: colors[Math.floor(Math.random() * colors.length)] });
+    if (flowers.length > MAX_FLOWERS) flowers.shift();
+    if (reduceMotion) { flowers.at(-1).g = 1; drawField(0); }
+    lastPlant = { x, y };
+  }
+  hero.addEventListener("pointerdown", (e) => {
+    if (e.button !== 0 || e.target.closest("a, .conditions")) return;
+    const r = canvas.getBoundingClientRect();
+    planting = true;
+    plant(e.clientX - r.left, e.clientY - r.top);
+  });
   hero.addEventListener("pointermove", (e) => {
     const r = canvas.getBoundingClientRect();
     pointer.x = e.clientX - r.left; pointer.y = e.clientY - r.top;
+    if (!planting) return;
+    // fill in along the path so fast drags still leave an even trail
+    let d = Math.hypot(pointer.x - lastPlant.x, pointer.y - lastPlant.y);
+    while (d > FLOWER_GAP) {
+      const k = FLOWER_GAP / d;
+      const nx = lastPlant.x + (pointer.x - lastPlant.x) * k, ny = lastPlant.y + (pointer.y - lastPlant.y) * k;
+      plant(nx, ny);
+      flowers.at(-1).x += (Math.random() - 0.5) * 10; // jitter the drawn flower, not the trail
+      d -= FLOWER_GAP;
+    }
   });
-  hero.addEventListener("pointerleave", () => { pointer.x = pointer.y = -9999; });
-  hero.addEventListener("click", (e) => {
-    if (e.target.closest("a, .conditions")) return;
-    const r = canvas.getBoundingClientRect();
-    const colors = [css("--accent"), "#e8d38c", "#c98d7a", "#f3f3e6"];
-    flowers.push({ x: e.clientX - r.left, y: e.clientY - r.top + 20, h: 18 + Math.random() * 14, g: 0, c: colors[flowers.length % colors.length] });
-    if (flowers.length > 40) flowers.shift();
-    if (reduceMotion) { flowers.at(-1).g = 1; drawField(0); }
-  });
+  const stopPlanting = () => { planting = false; };
+  addEventListener("pointerup", stopPlanting);
+  hero.addEventListener("pointercancel", stopPlanting); // touch scroll takes over
+  hero.addEventListener("pointerleave", () => { pointer.x = pointer.y = -9999; stopPlanting(); });
 
   /* ---------- field conditions (Berkeley) ---------- */
   const timeFmt = new Intl.DateTimeFormat("en-US", { hour: "2-digit", minute: "2-digit", second: "2-digit", hour12: false, timeZone: TZ });
