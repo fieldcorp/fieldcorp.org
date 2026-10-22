@@ -123,10 +123,10 @@
   }
   addEventListener("resize", () => { buildField(); if (reduceMotion) drawField(0); });
 
-  // press and drag across the hero to plant a trail of flowers
+  // moving the mouse over the hero plants a trail of flowers; on touch, a tap plants one
   const hero = $(".hero");
   const FLOWER_GAP = 26, MAX_FLOWERS = 160;
-  let planting = false, lastPlant = null;
+  let lastPlant = null;
   function plant(x, y) {
     const colors = [css("--accent"), "#e8d38c", "#c98d7a", "#f3f3e6"];
     flowers.push({ x, y: y + 20, h: 18 + Math.random() * 14, g: 0, c: colors[Math.floor(Math.random() * colors.length)] });
@@ -135,15 +135,15 @@
     lastPlant = { x, y };
   }
   hero.addEventListener("pointerdown", (e) => {
-    if (e.button !== 0 || e.target.closest("a, .conditions")) return;
+    if (e.pointerType === "mouse" || e.target.closest("a, .conditions")) return;
     const r = canvas.getBoundingClientRect();
-    planting = true;
     plant(e.clientX - r.left, e.clientY - r.top);
   });
   hero.addEventListener("pointermove", (e) => {
     const r = canvas.getBoundingClientRect();
     pointer.x = e.clientX - r.left; pointer.y = e.clientY - r.top;
-    if (!planting) return;
+    if (e.pointerType !== "mouse") return;
+    if (!lastPlant) return plant(pointer.x, pointer.y);
     // fill in along the path so fast drags still leave an even trail
     let d = Math.hypot(pointer.x - lastPlant.x, pointer.y - lastPlant.y);
     while (d > FLOWER_GAP) {
@@ -154,10 +154,8 @@
       d -= FLOWER_GAP;
     }
   });
-  const stopPlanting = () => { planting = false; };
-  addEventListener("pointerup", stopPlanting);
-  hero.addEventListener("pointercancel", stopPlanting); // touch scroll takes over
-  hero.addEventListener("pointerleave", () => { pointer.x = pointer.y = -9999; stopPlanting(); });
+  // start a fresh trail on re-entry instead of joining it to where the mouse left
+  hero.addEventListener("pointerleave", () => { pointer.x = pointer.y = -9999; lastPlant = null; });
 
   /* ---------- field conditions (Berkeley) ---------- */
   const timeFmt = new Intl.DateTimeFormat("en-US", { hour: "2-digit", minute: "2-digit", second: "2-digit", hour12: false, timeZone: TZ });
