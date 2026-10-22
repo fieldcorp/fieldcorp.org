@@ -23,34 +23,44 @@
   /* ---------- typewriter (words come from the plots) ---------- */
   const WORDS = $$(".plot[data-branch]").map((p) => p.dataset.branch).filter(Boolean);
   const twEl = $(".tw-text");
+  const CYCLE = 25000; // ms between word changes
+  const TYPE = 85, DEL = 45, GAP = 400;
+  // never leave the span empty: an empty span drops the baseline and makes "field" jump
+  const show = (s) => { twEl.textContent = s || "​"; };
   if (!reduceMotion) {
     let w = 0, c = WORDS[0].length, state = "hold";
+    const holdFor = (word) => Math.max(CYCLE - word.length * (TYPE + DEL) - GAP, 1000);
     const step = () => {
       const word = WORDS[w];
       if (state === "type") {
-        if (c < word.length) { twEl.textContent = word.slice(0, ++c); return setTimeout(step, 85); }
-        state = "hold"; return setTimeout(step, 1800);
+        if (c < word.length) { show(word.slice(0, ++c)); return setTimeout(step, TYPE); }
+        state = "hold"; return setTimeout(step, holdFor(word));
       }
-      if (state === "hold") { state = "del"; return setTimeout(step, 45); }
+      if (state === "hold") { state = "del"; return setTimeout(step, DEL); }
       if (state === "del") {
-        if (c > 0) { twEl.textContent = word.slice(0, --c); return setTimeout(step, 45); }
-        state = "type"; w = (w + 1) % WORDS.length; return setTimeout(step, 400);
+        if (c > 0) { show(word.slice(0, --c)); return setTimeout(step, DEL); }
+        state = "type"; w = (w + 1) % WORDS.length; return setTimeout(step, GAP);
       }
     };
-    setTimeout(step, 1800);
+    setTimeout(step, holdFor(WORDS[0]));
   }
 
   /* ---------- grass field (hero canvas) ---------- */
+  // grass draws behind the wordmark; flowers draw on a second canvas in front of it
   const canvas = $(".grass");
   const ctx = canvas.getContext("2d");
+  const bloomCanvas = $(".blooms");
+  const fctx = bloomCanvas.getContext("2d");
   let W, H, blades, bend, flowers = [];
   const pointer = { x: -9999, y: -9999 };
 
   function buildField() {
     const dpr = Math.min(devicePixelRatio || 1, 2);
     W = canvas.clientWidth; H = canvas.clientHeight;
-    canvas.width = W * dpr; canvas.height = H * dpr;
-    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    for (const [cv, c2] of [[canvas, ctx], [bloomCanvas, fctx]]) {
+      cv.width = W * dpr; cv.height = H * dpr;
+      c2.setTransform(dpr, 0, 0, dpr, 0, 0);
+    }
     const gap = W < 600 ? 13 : 16;
     blades = [];
     for (let y = gap; y < H + gap; y += gap) {
@@ -90,23 +100,25 @@
     ctx.stroke();
 
     // planted flowers
-    ctx.globalAlpha = 1;
+    fctx.clearRect(0, 0, W, H);
+    fctx.lineWidth = 1.2;
+    fctx.lineCap = "round";
+    fctx.strokeStyle = css("--accent-2");
     for (const f of flowers) {
       f.g = Math.min(1, f.g + 0.03);
       const sway = Math.sin(t * 0.002 + f.x * 0.05) * 0.12;
       const h = f.h * f.g;
       const hx = f.x + Math.sin(sway) * h, hy = f.y - Math.cos(sway) * h;
-      ctx.strokeStyle = css("--accent-2");
-      ctx.beginPath(); ctx.moveTo(f.x, f.y); ctx.quadraticCurveTo(f.x, f.y - h * 0.6, hx, hy); ctx.stroke();
-      ctx.fillStyle = f.c;
+      fctx.beginPath(); fctx.moveTo(f.x, f.y); fctx.quadraticCurveTo(f.x, f.y - h * 0.6, hx, hy); fctx.stroke();
+      fctx.fillStyle = f.c;
       for (let p = 0; p < 5; p++) {
         const pa = (p / 5) * Math.PI * 2 + t * 0.0004;
-        ctx.beginPath();
-        ctx.arc(hx + Math.cos(pa) * 4 * f.g, hy + Math.sin(pa) * 4 * f.g, 3.2 * f.g, 0, Math.PI * 2);
-        ctx.fill();
+        fctx.beginPath();
+        fctx.arc(hx + Math.cos(pa) * 4 * f.g, hy + Math.sin(pa) * 4 * f.g, 3.2 * f.g, 0, Math.PI * 2);
+        fctx.fill();
       }
-      ctx.fillStyle = "#e8d38c";
-      ctx.beginPath(); ctx.arc(hx, hy, 2.4 * f.g, 0, Math.PI * 2); ctx.fill();
+      fctx.fillStyle = "#e8d38c";
+      fctx.beginPath(); fctx.arc(hx, hy, 2.4 * f.g, 0, Math.PI * 2); fctx.fill();
     }
   }
 

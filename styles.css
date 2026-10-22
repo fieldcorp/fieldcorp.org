@@ -78,7 +78,9 @@ p { margin: 0 0 1em; }
   padding: 120px var(--gutter) 80px;
   overflow: hidden;
 }
-.grass { position: absolute; inset: 0; width: 100%; height: 100%; }
+.grass, .blooms { position: absolute; inset: 0; width: 100%; height: 100%; }
+.blooms { pointer-events: none; z-index: 1; } /* flowers sit over the wordmark */
+.conditions { z-index: 2; }
 .hero-inner { position: relative; text-align: left; width: min(1100px, 100%); pointer-events: none; }
 .hero-inner a { pointer-events: auto; }
 .wordmark {
