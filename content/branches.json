@@ -1,0 +1,63 @@
+[
+  {
+    "name": "Studio",
+    "slug": "studio",
+    "status": "growing",
+    "summary": "design practice. currently building wayhome.",
+    "description": "the design practice of field. the studio is where things for the outdoors get drawn, tested and rebuilt.\n\nright now the studio is designing wayhome.",
+    "drawing": "studio",
+    "photo": "",
+    "feature": "sundial",
+    "link_label": "follow wayhome →",
+    "link_url": "#contact"
+  },
+  {
+    "name": "Table",
+    "slug": "table",
+    "status": "sprouting",
+    "summary": "a pop-up restaurant, set outdoors.",
+    "description": "a pop-up restaurant that only happens outside. one long table, set somewhere unexpected, for one evening.\n\npull up a chair below — seatings are announced to the list first.",
+    "drawing": "table",
+    "photo": "",
+    "feature": "table",
+    "next_seating": "tba",
+    "link_label": "join the table list →",
+    "link_url": "#contact"
+  },
+  {
+    "name": "Hub",
+    "slug": "hub",
+    "status": "sprouting",
+    "summary": "a vending machine of curated objects.",
+    "description": "a vending machine stocked with a small, rotating set of objects worth carrying outside.\n\ntry it — press a code.",
+    "drawing": "hub",
+    "photo": "",
+    "feature": "vending",
+    "link_label": "",
+    "link_url": ""
+  },
+  {
+    "name": "Craft",
+    "slug": "craft",
+    "status": "seed",
+    "summary": "objects, made by hand.",
+    "description": "objects, made by hand, for use outside.",
+    "drawing": "craft",
+    "photo": "",
+    "feature": "none",
+    "link_label": "",
+    "link_url": ""
+  },
+  {
+    "name": "Post",
+    "slug": "post",
+    "status": "seed",
+    "summary": "dispatches from outside.",
+    "description": "letters, notes and dispatches from the field.",
+    "drawing": "post",
+    "photo": "",
+    "feature": "none",
+    "link_label": "",
+    "link_url": ""
+  }
+]

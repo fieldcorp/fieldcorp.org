@@ -1,0 +1,187 @@
+# Pages CMS configuration — https://pagescms.org
+# Edit the site at https://app.pagescms.org (sign in with the fieldcorp GitHub account).
+# Every save is a commit to main; GitHub Pages republishes fieldcorp.org in about a minute.
+
+media:
+  input: images
+  output: /images
+
+content:
+  - name: branches
+    label: Branches
+    type: file
+    path: content/branches.json
+    format: json
+    list: true
+    fields:
+      - name: name
+        label: Name
+        type: string
+        required: true
+        description: Shown as "field <name>". Also one of the words the homepage typewriter cycles through.
+      - name: status
+        label: Status
+        type: select
+        options:
+          values:
+            - name: growing
+              label: Growing (active, green dot)
+            - name: sprouting
+              label: Sprouting (coming soon, orange dot)
+            - name: seed
+              label: Seed (just an idea, listed under "still in the ground")
+      - name: summary
+        label: One-liner
+        type: string
+        description: The short line on the branch's plot card.
+      - name: description
+        label: Description
+        type: text
+        description: Shown in the branch's own section. Leave a blank line between paragraphs.
+      - name: photo
+        label: Photo
+        type: image
+        description: Optional. Replaces the line drawing on the plot card and in the branch section. Landscape works best.
+        options:
+          path: images/branches
+          extensions: [jpg, jpeg, png, webp]
+      - name: drawing
+        label: Line drawing
+        type: select
+        description: Used when there's no photo.
+        options:
+          values:
+            - name: studio
+              label: House on a hill (Studio)
+            - name: table
+              label: Table under lights (Table)
+            - name: hub
+              label: Vending machine (Hub)
+            - name: craft
+              label: Tool (Craft)
+            - name: post
+              label: Envelope (Post)
+            - name: none
+              label: Empty plot (+)
+      - name: feature
+        label: Interactive piece
+        type: select
+        description: The interactive part of the branch's section. Each one can only be used by one branch.
+        options:
+          values:
+            - name: none
+              label: None (show the photo or drawing)
+            - name: sundial
+              label: Time-of-day slider (uses the Studio timelapse photos)
+            - name: table
+              label: Table with seats
+            - name: vending
+              label: Vending machine (uses the Hub objects)
+      - name: next_seating
+        label: Next seating
+        type: string
+        description: Only for the "Table with seats" piece, e.g. "nov 14, tilden park". Leave empty for "tba".
+      - name: link_label
+        label: Button text
+        type: string
+        description: Optional button under the description, e.g. "follow wayhome →".
+      - name: link_url
+        label: Button link
+        type: string
+        description: Where the button goes, e.g. "#contact" or a full https:// address.
+      - name: slug
+        label: Section link name
+        type: string
+        description: Optional. Becomes fieldcorp.org/#<name>. Made from the name if empty.
+
+  - name: hub
+    label: Hub objects
+    type: file
+    path: content/hub.json
+    format: json
+    list: true
+    fields:
+      - name: name
+        label: Name
+        type: string
+        required: true
+        description: The first 9 objects fill the vending machine, A1 to C3, in this order.
+      - name: photo
+        label: Photo
+        type: image
+        description: Optional. A cut-out on a plain or transparent background (PNG) looks best.
+        options:
+          path: images/hub
+          extensions: [jpg, jpeg, png, webp]
+      - name: icon
+        label: Drawing
+        type: select
+        description: Used when there's no photo.
+        options:
+          values: [cup, matches, seeds, knife, notebook, compass, candle, postcard, rope, box]
+
+  - name: timelapse
+    label: Studio timelapse
+    type: file
+    path: content/timelapse.json
+    format: json
+    fields:
+      - name: photos
+        label: Photos
+        type: image
+        description: Upload the day's photos in order, first to last. Resize them to about 2000px wide first (full-size camera files are too heavy). The slider uses them once there are at least 2.
+        options:
+          path: images/timelapse
+          extensions: [jpg, jpeg, webp]
+          multiple:
+            max: 300
+      - name: first_photo_time
+        label: Time of the first photo
+        type: string
+        description: 24-hour time, e.g. 06:50. Photos are assumed to be evenly spaced.
+      - name: last_photo_time
+        label: Time of the last photo
+        type: string
+        description: 24-hour time, e.g. 18:40.
+
+  - name: site
+    label: Site text
+    type: file
+    path: content/site.json
+    format: json
+    fields:
+      - name: tagline
+        label: Tagline
+        type: string
+        description: Under the logo at the top of the page.
+      - name: field_title
+        label: Plots heading
+        type: string
+      - name: field_intro
+        label: Plots intro
+        type: text
+      - name: fallow_text
+        label: Empty plot text
+        type: string
+      - name: seed_title
+        label: Seed branches heading
+        type: string
+      - name: about
+        label: About
+        type: text
+      - name: about_highlight
+        label: About, highlighted ending
+        type: string
+      - name: quote
+        label: Quote
+        type: text
+        description: Shown in the about section and the scrolling ticker at the top.
+      - name: quote_author
+        label: Quote author
+        type: string
+      - name: email
+        label: Contact email
+        type: string
+      - name: location
+        label: Location (footer)
+        type: string

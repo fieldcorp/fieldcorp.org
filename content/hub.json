@@ -1,0 +1,11 @@
+[
+  { "name": "enamel cup", "icon": "cup", "photo": "" },
+  { "name": "matches", "icon": "matches", "photo": "" },
+  { "name": "seed packet", "icon": "seeds", "photo": "" },
+  { "name": "pocket knife", "icon": "knife", "photo": "" },
+  { "name": "field notebook", "icon": "notebook", "photo": "" },
+  { "name": "compass", "icon": "compass", "photo": "" },
+  { "name": "candle", "icon": "candle", "photo": "" },
+  { "name": "postcard", "icon": "postcard", "photo": "" },
+  { "name": "rope", "icon": "rope", "photo": "" }
+]
