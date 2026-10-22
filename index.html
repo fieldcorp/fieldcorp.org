@@ -1,0 +1,292 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>field corp</title>
+  <meta name="description" content="field is a non-geographical space where experiments for the outdoors happen. field is where we should be.">
+  <meta property="og:title" content="field corp">
+  <meta property="og:description" content="field is a non-geographical space where experiments for the outdoors happen.">
+  <link rel="icon" href="assets/favicon.svg" type="image/svg+xml">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible+Mono:wght@300;400;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+  <!-- ticker -->
+  <div class="ticker" aria-label="To do the useful thing, to say the courageous thing, to contemplate the beautiful thing — T.S. Eliot">
+    <div class="ticker-track" aria-hidden="true"></div>
+  </div>
+
+  <!-- nav -->
+  <header class="nav">
+    <a href="#top" class="nav-mark" aria-label="field home"><span class="logo"></span></a>
+    <nav>
+      <a href="#field">the field</a>
+      <a href="#about">about</a>
+      <a href="#contact">contact</a>
+    </nav>
+  </header>
+
+  <!-- hero -->
+  <section class="hero" id="top">
+    <canvas class="grass" aria-hidden="true"></canvas>
+    <div class="hero-inner">
+      <h1 class="wordmark">
+        <span class="logo logo-lg" role="img" aria-label="field"></span>
+        <span class="tw"><span class="tw-text">Studio</span><span class="tw-caret" aria-hidden="true"></span></span>
+      </h1>
+      <p class="tagline">a non-geographical space where experiments for the outdoors happen.</p>
+      <a class="cta" href="#field">walk the field ↓</a>
+    </div>
+
+    <aside class="conditions" aria-label="Field conditions">
+      <div class="conditions-head">field conditions</div>
+      <dl>
+        <dt>Location</dt><dd>Berkeley, CA</dd>
+        <dt>Time</dt><dd id="c-time">--:--:--</dd>
+        <dt>Weather</dt><dd id="c-wx">…</dd>
+        <dt>Sun</dt><dd id="c-sun">…</dd>
+      </dl>
+    </aside>
+  </section>
+
+  <!-- the field: map of branches -->
+  <section class="field" id="field">
+    <div class="section-head">
+      <span class="eyebrow">01 — the field</span>
+      <h2>one field, many plots.</h2>
+      <p>field is an umbrella for small experiments in being outside. each plot below is its own branch — some growing, some still seed.</p>
+    </div>
+
+    <div class="plots">
+      <a class="plot plot-studio" href="#studio" data-branch="Studio">
+        <div class="plot-art">
+          <svg viewBox="0 0 200 140" aria-hidden="true">
+            <circle class="sun" cx="150" cy="38" r="14"/>
+            <path class="ln" d="M10 118 Q 70 82 120 100 T 190 96"/>
+            <path class="ln house" d="M78 100 L78 78 L96 62 L114 78 L114 100"/>
+            <path class="ln" d="M90 100 v-12 h12 v12"/>
+            <path class="ln dash" d="M20 40 a 60 60 0 0 1 60 -20"/>
+          </svg>
+        </div>
+        <div class="plot-meta">
+          <span class="plot-no">plot 01</span>
+          <h3>field Studio</h3>
+          <p>design practice. currently building <em>wayhome</em>.</p>
+          <span class="status status-active">growing</span>
+        </div>
+      </a>
+
+      <a class="plot plot-table" href="#table" data-branch="Table">
+        <div class="plot-art">
+          <svg viewBox="0 0 200 140" aria-hidden="true">
+            <path class="ln" d="M20 92 H180"/>
+            <path class="ln" d="M36 92 V118 M164 92 V118"/>
+            <g class="chairs">
+              <path class="ln" d="M50 104 v-14 M70 104 v-14 M90 104 v-14 M110 104 v-14 M130 104 v-14 M150 104 v-14"/>
+            </g>
+            <path class="ln string" d="M10 30 Q 100 60 190 30"/>
+            <g class="bulbs">
+              <circle cx="40" cy="40" r="3"/><circle cx="70" cy="47" r="3"/><circle cx="100" cy="49" r="3"/><circle cx="130" cy="47" r="3"/><circle cx="160" cy="40" r="3"/>
+            </g>
+          </svg>
+        </div>
+        <div class="plot-meta">
+          <span class="plot-no">plot 02</span>
+          <h3>field Table</h3>
+          <p>a pop-up restaurant, set outdoors.</p>
+          <span class="status status-soon">sprouting</span>
+        </div>
+      </a>
+
+      <a class="plot plot-hub" href="#hub" data-branch="Hub">
+        <div class="plot-art">
+          <svg viewBox="0 0 200 140" aria-hidden="true">
+            <rect class="ln" x="66" y="14" width="68" height="112" rx="4"/>
+            <rect class="ln" x="74" y="22" width="40" height="70"/>
+            <path class="ln" d="M74 45 H114 M74 68 H114 M87 22 V92 M100 22 V92"/>
+            <rect class="ln" x="74" y="100" width="40" height="14"/>
+            <g class="keys"><circle cx="124" cy="30" r="2.5"/><circle cx="124" cy="40" r="2.5"/><circle cx="124" cy="50" r="2.5"/></g>
+          </svg>
+        </div>
+        <div class="plot-meta">
+          <span class="plot-no">plot 03</span>
+          <h3>field Hub</h3>
+          <p>a vending machine of curated objects.</p>
+          <span class="status status-soon">sprouting</span>
+        </div>
+      </a>
+
+      <a class="plot plot-craft" href="#more" data-branch="Craft">
+        <div class="plot-art">
+          <svg viewBox="0 0 200 140" aria-hidden="true">
+            <path class="ln" d="M60 110 L140 30"/>
+            <path class="ln" d="M130 26 l14 14 l-8 8 l-14 -14 z"/>
+            <path class="ln dash" d="M40 120 H160"/>
+          </svg>
+        </div>
+        <div class="plot-meta">
+          <span class="plot-no">plot 04</span>
+          <h3>field Craft</h3>
+          <p>objects, made by hand.</p>
+          <span class="status">seed</span>
+        </div>
+      </a>
+
+      <a class="plot plot-post" href="#more" data-branch="Post">
+        <div class="plot-art">
+          <svg viewBox="0 0 200 140" aria-hidden="true">
+            <rect class="ln" x="50" y="34" width="100" height="70"/>
+            <path class="ln" d="M50 34 L100 74 L150 34"/>
+            <rect class="ln dash" x="124" y="42" width="18" height="22"/>
+          </svg>
+        </div>
+        <div class="plot-meta">
+          <span class="plot-no">plot 05</span>
+          <h3>field Post</h3>
+          <p>dispatches from outside.</p>
+          <span class="status">seed</span>
+        </div>
+      </a>
+
+      <a class="plot plot-empty" href="#contact" data-branch="">
+        <div class="plot-art">
+          <svg viewBox="0 0 200 140" aria-hidden="true">
+            <path class="ln dash" d="M100 40 V100 M70 70 H130"/>
+          </svg>
+        </div>
+        <div class="plot-meta">
+          <span class="plot-no">plot 06</span>
+          <h3>fallow</h3>
+          <p>this plot is open. got an experiment?</p>
+        </div>
+      </a>
+    </div>
+  </section>
+
+  <!-- studio / wayhome -->
+  <section class="branch" id="studio">
+    <div class="branch-copy">
+      <span class="eyebrow">plot 01 — field Studio</span>
+      <h2>field Studio</h2>
+      <p>the design practice of field. the studio is where things for the outdoors get drawn, tested and rebuilt.</p>
+      <p>right now the studio is designing <strong>wayhome</strong>.</p>
+      <!-- TODO: one or two lines about what wayhome is -->
+      <a class="cta" href="#contact">follow wayhome →</a>
+    </div>
+    <div class="branch-art">
+      <svg class="dial" viewBox="0 0 400 260" aria-hidden="true">
+        <defs>
+          <linearGradient id="sky" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0" class="sky-top"/><stop offset="1" class="sky-bot"/>
+          </linearGradient>
+        </defs>
+        <rect width="400" height="260" fill="url(#sky)" rx="6"/>
+        <path class="arc" d="M40 200 A 160 150 0 0 1 360 200"/>
+        <circle id="sun" r="14" cx="200" cy="50"/>
+        <path class="ground" d="M0 200 Q 120 176 220 190 T 400 186 V260 H0Z"/>
+        <polygon id="shadow" class="shadow" points="0,0"/>
+        <path class="ln house" d="M170 196 V160 L200 136 L230 160 V196"/>
+        <path class="ln" d="M190 196 v-20 h20 v20"/>
+      </svg>
+      <label class="slider">
+        <span>time of day</span>
+        <input id="sun-range" type="range" min="0" max="100" value="50">
+        <output id="sun-out">12:00</output>
+      </label>
+    </div>
+  </section>
+
+  <!-- table -->
+  <section class="branch branch-flip" id="table">
+    <div class="branch-copy">
+      <span class="eyebrow">plot 02 — field Table</span>
+      <h2>field Table</h2>
+      <p>a pop-up restaurant that only happens outside. one long table, set somewhere unexpected, for one evening.</p>
+      <p>pull up a chair below — seatings are announced to the list first.</p>
+      <p class="muted" id="seat-note">pick a seat.</p>
+      <a class="cta" href="#contact">join the table list →</a>
+    </div>
+    <div class="branch-art">
+      <div class="table-scene">
+        <svg viewBox="0 0 400 80" class="lights" aria-hidden="true">
+          <path d="M0 10 Q 200 70 400 10"/>
+        </svg>
+        <div class="table" role="group" aria-label="Seats at the table">
+          <div class="seats seats-top"></div>
+          <div class="tabletop"><span>next seating: tba</span></div>
+          <div class="seats seats-bot"></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- hub -->
+  <section class="branch" id="hub">
+    <div class="branch-copy">
+      <span class="eyebrow">plot 03 — field Hub</span>
+      <h2>field Hub</h2>
+      <p>a vending machine stocked with a small, rotating set of objects worth carrying outside.</p>
+      <p>try it — press a code.</p>
+      <p class="muted">items shown are placeholders.</p>
+    </div>
+    <div class="branch-art">
+      <div class="vend">
+        <div class="vend-glass">
+          <div class="vend-grid"></div>
+        </div>
+        <div class="vend-side">
+          <div class="vend-display" aria-live="polite">select</div>
+          <div class="vend-keys"></div>
+          <div class="vend-tray" aria-live="polite"></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- more -->
+  <section class="more" id="more">
+    <div class="section-head">
+      <span class="eyebrow">plots 04 + 05</span>
+      <h2>still in the ground.</h2>
+    </div>
+    <div class="more-grid">
+      <div class="more-card">
+        <h3>field Craft</h3>
+        <p>objects, made by hand, for use outside.</p>
+        <!-- TODO: description -->
+      </div>
+      <div class="more-card">
+        <h3>field Post</h3>
+        <p>letters, notes and dispatches from the field.</p>
+        <!-- TODO: description -->
+      </div>
+    </div>
+  </section>
+
+  <!-- about -->
+  <section class="about" id="about">
+    <span class="eyebrow">02 — about</span>
+    <p class="big">field is a non-geographical space where experiments for the outdoors happen. <span class="hl">field is where we should be.</span></p>
+    <blockquote>“To do the useful thing, to say the courageous thing, to contemplate the beautiful thing.” <cite>— T.S. Eliot</cite></blockquote>
+  </section>
+
+  <!-- contact -->
+  <footer class="contact" id="contact">
+    <div>
+      <span class="eyebrow">03 — contact</span>
+      <!-- TODO: confirm address -->
+      <a class="mail" href="mailto:hello@fieldcorp.org">hello@fieldcorp.org</a>
+    </div>
+    <div class="foot-meta">
+      <span>field corp · berkeley, ca</span>
+      <span>© <span id="yr"></span></span>
+    </div>
+  </footer>
+
+  <script src="main.js" defer></script>
+</body>
+</html>
