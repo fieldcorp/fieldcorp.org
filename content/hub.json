@@ -1,11 +1,39 @@
 [
-  { "name": "enamel cup", "icon": "cup", "photo": "" },
-  { "name": "matches", "icon": "matches", "photo": "" },
-  { "name": "seed packet", "icon": "seeds", "photo": "" },
-  { "name": "pocket knife", "icon": "knife", "photo": "" },
-  { "name": "field notebook", "icon": "notebook", "photo": "" },
-  { "name": "compass", "icon": "compass", "photo": "" },
-  { "name": "candle", "icon": "candle", "photo": "" },
-  { "name": "postcard", "icon": "postcard", "photo": "" },
-  { "name": "rope", "icon": "rope", "photo": "" }
+  {
+    "name": "enamel cup",
+    "photo": "/images/hub/MilkGlass-Green-Setof2.webp",
+    "icon": "cup"
+  },
+  {
+    "name": "matches",
+    "icon": "matches"
+  },
+  {
+    "name": "seed packet",
+    "icon": "seeds"
+  },
+  {
+    "name": "pocket knife",
+    "icon": "knife"
+  },
+  {
+    "name": "field notebook",
+    "icon": "notebook"
+  },
+  {
+    "name": "compass",
+    "icon": "compass"
+  },
+  {
+    "name": "candle",
+    "icon": "candle"
+  },
+  {
+    "name": "postcard",
+    "icon": "postcard"
+  },
+  {
+    "name": "rope",
+    "icon": "rope"
+  }
 ]
