@@ -119,9 +119,9 @@
   const hero = $(".hero");
   const FLOWER_GAP = 26, MAX_FLOWERS = 160;
   let lastPlant = null;
-  function plant(x, y) {
+  function plant(x, y, c) {
     const colors = [css("--accent"), "#e8d38c", "#c98d7a", "#f3f3e6"];
-    flowers.push({ x, y: y + 20, h: 18 + Math.random() * 14, g: 0, c: colors[Math.floor(Math.random() * colors.length)] });
+    flowers.push({ x, y: y + 20, h: 18 + Math.random() * 14, g: 0, c: c || colors[Math.floor(Math.random() * colors.length)] });
     if (flowers.length > MAX_FLOWERS) flowers.shift();
     if (reduceMotion) { flowers.at(-1).g = 1; drawField(0); }
     lastPlant = { x, y };
@@ -146,6 +146,12 @@
       d -= FLOWER_GAP;
     }
   });
+  // 3s after load, one red flower appears somewhere in the field so people know they can plant
+  setTimeout(() => {
+    if (flowers.length) return; // they've already found it
+    plant(W * (0.15 + Math.random() * 0.7), H * (0.35 + Math.random() * 0.5), "#b8322a");
+    lastPlant = null; // don't join the first real trail to this flower
+  }, 3000);
   // start a fresh trail on re-entry instead of joining it to where the mouse left
   hero.addEventListener("pointerleave", () => { pointer.x = pointer.y = -9999; lastPlant = null; });
 
