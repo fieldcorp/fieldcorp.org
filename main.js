@@ -1,6 +1,4 @@
-// field corp — interactions. No build step, no dependencies.
-// Text, branches, Hub objects and timelapse photos come from content/*.json,
-// which are edited with Pages CMS (see .pages.yml).
+// field corp — interactions. Content comes from content/*.json.
 (() => {
   const $ = (q, el = document) => el.querySelector(q);
   const $$ = (q, el = document) => [...el.querySelectorAll(q)];

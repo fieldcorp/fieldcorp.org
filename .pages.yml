@@ -1,7 +1,3 @@
-# Pages CMS configuration — https://pagescms.org
-# Edit the site at https://app.pagescms.org (sign in with the fieldcorp GitHub account).
-# Every save is a commit to main; GitHub Pages republishes fieldcorp.org in about a minute.
-
 media:
   input: images
   output: /images
