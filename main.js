@@ -572,7 +572,8 @@
     const photos = (tl.photos || []).filter(Boolean);
     const stepEls = $$(".step", steps);
     // the step in focus is the one crossing this line; lower on phones, where the timelapse sits on top
-    const FOCUS = matchMedia("(max-width: 860px)").matches ? 0.72 : 0.5;
+    const narrow = matchMedia("(max-width: 860px)").matches;
+    const FOCUS = narrow ? 0.72 : 0.5;
     const io = new IntersectionObserver((entries) => {
       for (const e of entries) e.target.classList.toggle("on", e.isIntersecting);
     }, { rootMargin: `-${FOCUS * 100 - 5}% 0px -${95 - FOCUS * 100}% 0px` });
@@ -584,9 +585,30 @@
     $(".daylapse-frames", box).innerHTML = photos
       .map((src, i) => `<img src="${esc(src)}" alt="" decoding="async"${i ? ' loading="lazy"' : ""}>`).join("");
     const frames = $$(".daylapse-frames img", box);
+    const framesBox = $(".daylapse-frames", box);
     const time = $(".daylapse-time", box), bar = $(".daylapse-bar span", box);
     let shown = [0];
+    // full screen when the section reaches the top, framed after ZOOM more of scrolling
+    function frame() {
+      const ZOOM = innerHeight * 0.6;
+      const z = ease(Math.min(1, Math.max(0, -section.getBoundingClientRect().top / ZOOM)));
+      const gutter = parseFloat(getComputedStyle(section).paddingLeft);
+      let t, r, b, l = gutter;
+      // on phones the frame is a band at the top, so slide the picture up to keep the horizon in it
+      framesBox.style.transform = narrow ? `translateY(${-0.34 * innerHeight * z}px)` : "";
+      if (narrow) { t = 84; b = innerHeight - t - innerHeight * 0.4; r = gutter; }
+      else {
+        t = 96; b = 32;
+        r = innerWidth - (steps.getBoundingClientRect().left - parseFloat(getComputedStyle(section).columnGap));
+      }
+      const st = box.style;
+      st.setProperty("--ct", `${t * z}px`); st.setProperty("--cr", `${r * z}px`);
+      st.setProperty("--cb", `${b * z}px`); st.setProperty("--cl", `${l * z}px`);
+      st.setProperty("--rad", `${6 * z}px`);
+      steps.style.opacity = Math.max(0, (z - 0.6) / 0.4); // text arrives once the frame has nearly settled
+    }
     function update() {
+      frame();
       // 0 when the first step reaches the focus line, 1 when the last one does
       const first = stepEls[0].getBoundingClientRect(), last = stepEls.at(-1).getBoundingClientRect();
       const mid = innerHeight * FOCUS;
