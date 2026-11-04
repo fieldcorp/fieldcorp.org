@@ -66,7 +66,7 @@
     }
   }
 
-  // sky behind the grass: a sunset glow while fading, then stars and a full moon
+  // sky behind the grass: a sunset glow while fading, then stars and moonlight from the corner
   function drawSky(t) {
     const glow = Math.sin(Math.PI * night); // peaks halfway through the fade
     if (glow > 0.01) {
@@ -89,26 +89,22 @@
       ctx.beginPath(); ctx.arc(st.x, st.y, st.r, 0, 6.283); ctx.fill();
     }
 
-    const mx = W * 0.8, my = H * 0.17, mr = Math.max(16, Math.min(34, W * 0.022));
+    // moonlight glowing in from the top-right corner
+    const gr = Math.max(W, H) * 0.75;
     ctx.globalAlpha = 1;
-    const halo = ctx.createRadialGradient(mx, my, mr * 0.8, mx, my, mr * 7);
-    halo.addColorStop(0, `rgba(236,232,210,${0.22 * night})`);
+    const halo = ctx.createRadialGradient(W, 0, 0, W, 0, gr);
+    halo.addColorStop(0, `rgba(236,232,210,${0.2 * night})`);
+    halo.addColorStop(0.4, `rgba(236,232,210,${0.06 * night})`);
     halo.addColorStop(1, "rgba(236,232,210,0)");
-    ctx.fillStyle = halo; ctx.fillRect(mx - mr * 7, my - mr * 7, mr * 14, mr * 14);
-    ctx.fillStyle = `rgba(240,236,218,${night})`;
-    ctx.beginPath(); ctx.arc(mx, my, mr, 0, 6.283); ctx.fill();
-    ctx.fillStyle = `rgba(190,184,164,${0.45 * night})`;
-    for (const [cx, cy, cr] of [[-0.3, -0.2, 0.22], [0.25, 0.15, 0.16], [-0.05, 0.4, 0.12], [0.35, -0.35, 0.09]]) {
-      ctx.beginPath(); ctx.arc(mx + cx * mr, my + cy * mr, cr * mr, 0, 6.283); ctx.fill();
-    }
+    ctx.fillStyle = halo; ctx.fillRect(0, 0, W, H);
   }
 
   function drawField(t) {
     ctx.clearRect(0, 0, W, H);
     drawSky(t);
-    // at night the grass is lit from the moon's side and the dots in the sky fade out
+    // at night the grass is lit from the glowing corner's side and the dots in the sky fade out
     const [r, g, b0] = rgb(css("--ink"));
-    const lit = ctx.createLinearGradient(0, 0, W * 0.8, 0);
+    const lit = ctx.createLinearGradient(0, 0, W, 0);
     lit.addColorStop(0, `rgba(${r},${g},${b0},${1 - 0.55 * night})`);
     lit.addColorStop(1, `rgb(${r},${g},${b0})`);
     ctx.strokeStyle = lit;
