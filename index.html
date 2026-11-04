@@ -92,11 +92,31 @@
     <blockquote>“<span data-site="quote"></span>” <cite>— <span data-site="quote_author"></span></cite></blockquote>
   </section>
 
-  <!-- contact -->
+  <!-- principles -->
+  <section class="ways" id="ways">
+    <div class="section-head">
+      <span class="eyebrow">03 — how we work</span>
+      <h2 data-site="principles_title">how we work.</h2>
+    </div>
+    <ol class="ways-list"></ol>
+  </section>
+
+  <!-- contact: a note you fill in, sent from your own email app -->
   <footer class="contact" id="contact">
-    <div>
-      <span class="eyebrow">03 — contact</span>
-      <a class="mail" href="#"></a>
+    <div class="contact-main">
+      <span class="eyebrow">04 — contact</span>
+      <h2 data-site="contact_title">say hello.</h2>
+      <form class="letter" novalidate>
+        <p>
+          hi, my name is <input name="name" placeholder="your name" autocomplete="name" aria-label="Your name">.
+          i'm curious about <select name="branch" aria-label="Which part of field"><option>field</option></select>
+          because <input name="why" placeholder="tell us a little" aria-label="Why">.
+          you can reach me at <input name="email" type="email" placeholder="your email" autocomplete="email" aria-label="Your email">.
+        </p>
+        <button type="submit">send note →</button>
+        <span class="letter-note muted" aria-live="polite"></span>
+      </form>
+      <p class="muted or-mail">or write to <a class="mail" href="#"></a></p>
     </div>
     <div class="foot-meta">
       <span>field corp · <span data-site="location"></span></span>

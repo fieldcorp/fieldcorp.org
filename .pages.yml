@@ -175,6 +175,24 @@ content:
       - name: quote_author
         label: Quote author
         type: string
+      - name: principles_title
+        label: How we work heading
+        type: string
+      - name: principles
+        label: How we work
+        type: object
+        list: true
+        description: Short statements shown in the "how we work" section. Four fit best.
+        fields:
+          - name: title
+            label: Statement
+            type: string
+          - name: text
+            label: One sentence
+            type: text
+      - name: contact_title
+        label: Contact heading
+        type: string
       - name: email
         label: Contact email
         type: string

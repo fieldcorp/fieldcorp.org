@@ -367,6 +367,7 @@
       .filter((b) => b && b.name)
       .map((b) => ({ ...b, slug: slugify(b.slug || b.name), status: b.status || "seed", feature: b.feature || "none" }));
     renderBranches(branches, site);
+    initLetter(site, branches);
     startTypewriter(branches.map((b) => b.name));
     initSundial(timelapse);
     initTable();
@@ -383,6 +384,36 @@
     const mail = $(".mail");
     if (site.email) { mail.href = `mailto:${site.email}`; mail.textContent = site.email; }
     else mail.hidden = true;
+    const ways = (site.principles || []).filter((w) => w && w.title);
+    $(".ways-list").innerHTML = ways.map((w) => `<li class="way"><h3>${esc(w.title)}</h3><p>${esc(w.text || "")}</p></li>`).join("");
+    $("#ways").hidden = !ways.length;
+  }
+
+  // the contact note: blanks grow with what's typed; sending opens the visitor's own email app
+  function initLetter(site, branches) {
+    const form = $(".letter"), note = $(".letter-note");
+    const branch = form.elements.branch;
+    branch.innerHTML = ["field", ...branches.filter((b) => b.status !== "seed").map((b) => `field ${b.name}`)]
+      .map((n) => `<option>${esc(n)}</option>`).join("");
+    const fit = (el) => {
+      const text = el.tagName === "SELECT" ? el.value : el.value || el.placeholder;
+      el.style.width = `${text.length + (el.tagName === "SELECT" ? 3 : 1)}ch`;
+    };
+    for (const el of form.querySelectorAll("input, select")) {
+      fit(el);
+      el.addEventListener("input", () => { fit(el); el.classList.remove("missing"); });
+    }
+    form.addEventListener("submit", (e) => {
+      e.preventDefault();
+      const f = form.elements, name = f.name.value.trim();
+      if (!name) { f.name.classList.add("missing"); f.name.focus(); note.textContent = "start with your name."; return; }
+      if (!site.email) return;
+      const why = f.why.value.trim(), from = f.email.value.trim();
+      const body = `hi, my name is ${name}. i'm curious about ${branch.value}` +
+        (why ? ` because ${why}.` : ".") + (from ? ` you can reach me at ${from}.` : "");
+      location.href = `mailto:${site.email}?subject=${encodeURIComponent(`hello from ${name} — ${branch.value}`)}&body=${encodeURIComponent(body)}`;
+      note.textContent = `your email app should open with the note. if it doesn't, write to ${site.email}.`;
+    });
   }
 
   function renderBranches(branches, site) {
@@ -612,7 +643,7 @@
 
   /* ---------- reveal on scroll ---------- */
   function initReveal() {
-    const targets = $$(".section-head, .plot, .branch-copy, .branch-art, .more-card, .about > *");
+    const targets = $$(".section-head, .plot, .branch-copy, .branch-art, .more-card, .about > *, .way, .letter");
     targets.forEach((el) => el.classList.add("reveal"));
     const io = new IntersectionObserver((entries) => {
       for (const e of entries) {
