@@ -36,8 +36,9 @@
   const HORIZON = 0.42; // at night the sky is above this line (as a share of the hero's height)
   let night = document.documentElement.dataset.theme === "night" ? 1 : 0; // 0 day … 1 night, eased during the fade
 
+  let DPR = 1;
   function buildField() {
-    const dpr = Math.min(devicePixelRatio || 1, 2);
+    const dpr = DPR = Math.min(devicePixelRatio || 1, 2);
     W = canvas.clientWidth; H = canvas.clientHeight;
     for (const [cv, c2] of [[canvas, ctx], [bloomCanvas, fctx]]) {
       cv.width = W * dpr; cv.height = H * dpr;
@@ -66,13 +67,13 @@
     }
   }
 
-  // now and then in daylight a small ufo drifts across the sky; if anything's been planted,
+  // now and then a small ufo drifts across the sky, day or night; if anything's been planted,
   // it stops over a flower, beams it up and leaves with it
   let ufo = null, nextUfo = 6000 + Math.random() * 10000;
   const APPROACH = 3500, BEAM = 2800, LEAVE = 3000;
   function drawUfo(t, r, g, b) {
     if (!ufo) {
-      if (t < nextUfo || night > 0.3 || !t) return;
+      if (t < nextUfo || !t) return;
       const target = flowers.length ? flowers[Math.floor(Math.random() * flowers.length)] : null;
       const ltr = target ? target.x > W / 2 : Math.random() < 0.5; // come in from the far side
       ufo = {
@@ -104,18 +105,26 @@
     const y = ufo.y + (Math.sin(e / 400) * 6 + Math.sin(e / 1500) * 14) * still; // a bit of a wobble
     ufo.at = { x, y };
     if (beam && f) {
-      const [ar, ag, ab] = rgb(css("--accent"));
-      const grad = ctx.createLinearGradient(0, y, 0, f.y);
-      grad.addColorStop(0, `rgba(${ar},${ag},${ab},${0.4 * beam * (1 - night)})`);
-      grad.addColorStop(1, `rgba(${ar},${ag},${ab},${0.08 * beam * (1 - night)})`);
-      ctx.fillStyle = grad;
+      // the beam has no colour of its own: it bends the field behind it like heat haze
+      const top = y + 3 * s, bottom = f.y + 4, wTop = 8 * s, wBot = 34;
+      ctx.save();
       ctx.beginPath();
-      ctx.moveTo(x - 6 * s, y + 3 * s); ctx.lineTo(x + 6 * s, y + 3 * s);
-      ctx.lineTo(f.x + 26, f.y + 4); ctx.lineTo(f.x - 26, f.y + 4);
-      ctx.closePath(); ctx.fill();
+      ctx.moveTo(x - wTop, top); ctx.lineTo(x + wTop, top);
+      ctx.lineTo(f.x + wBot, bottom); ctx.lineTo(f.x - wBot, bottom);
+      ctx.closePath(); ctx.clip();
+      const left = Math.min(x - wTop, f.x - wBot) - 8, width = Math.max(x + wTop, f.x + wBot) - left + 16;
+      for (let yy = top; yy < bottom; yy += 2) {
+        const off = Math.sin(yy * 0.09 - t * 0.012) * 6 * beam + Math.sin(yy * 0.023 + t * 0.004) * 3 * beam;
+        ctx.drawImage(canvas, left * DPR, yy * DPR, width * DPR, 2 * DPR, left + off, yy, width, 2);
+      }
+      // and the faintest haze, brighter at the saucer
+      const haze = ctx.createLinearGradient(0, top, 0, bottom);
+      haze.addColorStop(0, `rgba(255,255,255,${(0.22 - 0.1 * night) * beam})`);
+      haze.addColorStop(1, `rgba(255,255,255,${0.04 * beam})`);
+      ctx.fillStyle = haze; ctx.fillRect(left, top, width, bottom - top);
+      ctx.restore();
     }
     ctx.save();
-    ctx.globalAlpha = 1 - night;
     ctx.translate(x, y);
     ctx.rotate(Math.sin(k * Math.PI * 6 + 0.6) * 0.08 * (ufo.ltr ? 1 : -1));
     ctx.fillStyle = `rgba(${r},${g},${b},.28)`; // glass dome
@@ -126,7 +135,7 @@
     ctx.fillStyle = css("--accent"); // lights chasing along the rim
     const lit = Math.floor(t / 220) % 4;
     for (let i = 0; i < 4; i++) {
-      ctx.globalAlpha = (1 - night) * (i === lit ? 1 : 0.35);
+      ctx.globalAlpha = i === lit ? 1 : 0.35;
       ctx.beginPath(); ctx.arc((i - 1.5) * 8 * s, 0.5 * s, 1.6 * s, 0, Math.PI * 2); ctx.fill();
     }
     ctx.restore();
@@ -170,7 +179,6 @@
     drawSky(t);
     // the grass stops at a horizon; at night it's lit from the glowing corner's side
     const [r, g, b0] = rgb(css("--ink"));
-    drawUfo(t, r, g, b0);
     const lit = ctx.createLinearGradient(0, 0, W, 0);
     lit.addColorStop(0, `rgba(${r},${g},${b0},${1 - 0.55 * night})`);
     lit.addColorStop(1, `rgb(${r},${g},${b0})`);
@@ -198,6 +206,7 @@
       ctx.stroke();
     }
     ctx.globalAlpha = 1;
+    drawUfo(t, r, g, b0); // after the grass, so the beam can bend it
 
     // planted flowers
     fctx.clearRect(0, 0, W, H);
