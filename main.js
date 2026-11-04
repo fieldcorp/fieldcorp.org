@@ -66,6 +66,37 @@
     }
   }
 
+  // now and then in daylight a small ufo drifts across the sky
+  let ufo = null, nextUfo = 6000 + Math.random() * 10000;
+  function drawUfo(t, r, g, b) {
+    if (!ufo) {
+      if (t < nextUfo || night > 0.3 || !t) return;
+      const ltr = Math.random() < 0.5;
+      ufo = { t0: t, dur: 7000 + Math.random() * 5000, ltr, y: H * (0.07 + Math.random() * (HORIZON - 0.2)), s: 0.8 + Math.random() * 0.5 };
+    }
+    const k = (t - ufo.t0) / ufo.dur;
+    if (k >= 1) { ufo = null; nextUfo = t + 15000 + Math.random() * 30000; return; }
+    const s = ufo.s, x0 = -40 * s, x1 = W + 40 * s;
+    const x = ufo.ltr ? x0 + (x1 - x0) * k : x1 - (x1 - x0) * k;
+    const y = ufo.y + Math.sin(k * Math.PI * 6) * 6 + Math.sin(k * Math.PI * 1.3) * 14; // a bit of a wobble
+    ctx.save();
+    ctx.globalAlpha = 1 - night;
+    ctx.translate(x, y);
+    ctx.rotate(Math.sin(k * Math.PI * 6 + 0.6) * 0.08 * (ufo.ltr ? 1 : -1));
+    ctx.fillStyle = `rgba(${r},${g},${b},.28)`; // glass dome
+    ctx.strokeStyle = `rgb(${r},${g},${b})`; ctx.lineWidth = 1.2;
+    ctx.beginPath(); ctx.ellipse(0, -3 * s, 7 * s, 7 * s, 0, Math.PI, 0); ctx.fill(); ctx.stroke();
+    ctx.fillStyle = `rgb(${r},${g},${b})`; // saucer
+    ctx.beginPath(); ctx.ellipse(0, 0, 18 * s, 4.5 * s, 0, 0, Math.PI * 2); ctx.fill();
+    ctx.fillStyle = css("--accent"); // lights chasing along the rim
+    const lit = Math.floor(t / 220) % 4;
+    for (let i = 0; i < 4; i++) {
+      ctx.globalAlpha = (1 - night) * (i === lit ? 1 : 0.35);
+      ctx.beginPath(); ctx.arc((i - 1.5) * 8 * s, 0.5 * s, 1.6 * s, 0, Math.PI * 2); ctx.fill();
+    }
+    ctx.restore();
+  }
+
   // sky behind the grass: a sunset glow while fading, then stars and moonlight from the corner
   function drawSky(t) {
     const glow = Math.sin(Math.PI * night); // peaks halfway through the fade
@@ -102,8 +133,9 @@
   function drawField(t) {
     ctx.clearRect(0, 0, W, H);
     drawSky(t);
-    // at night the grass is lit from the glowing corner's side and the dots in the sky fade out
+    // the grass stops at a horizon; at night it's lit from the glowing corner's side
     const [r, g, b0] = rgb(css("--ink"));
+    drawUfo(t, r, g, b0);
     const lit = ctx.createLinearGradient(0, 0, W, 0);
     lit.addColorStop(0, `rgba(${r},${g},${b0},${1 - 0.55 * night})`);
     lit.addColorStop(1, `rgb(${r},${g},${b0})`);
@@ -113,7 +145,7 @@
     const R = 120;
     for (let ri = 0; ri < rows.length; ri++) {
       const fadeSky = Math.min(1, Math.max(0, (rows[ri].y / H - HORIZON + 0.06) / 0.16));
-      ctx.globalAlpha = 0.42 * (1 - night + night * fadeSky);
+      ctx.globalAlpha = 0.42 * fadeSky;
       ctx.beginPath();
       const end = ri + 1 < rows.length ? rows[ri + 1].start : blades.length;
       for (let i = rows[ri].start; i < end; i++) {
@@ -179,15 +211,17 @@
     if (reduceMotion) { flowers.at(-1).g = 1; drawField(0); }
     lastPlant = { x, y };
   }
+  const inSky = (y) => y < H * HORIZON; // flowers only grow below the horizon
   hero.addEventListener("pointerdown", (e) => {
     if (e.pointerType === "mouse" || e.target.closest("a, .conditions")) return;
     const r = canvas.getBoundingClientRect();
-    plant(e.clientX - r.left, e.clientY - r.top);
+    if (!inSky(e.clientY - r.top)) plant(e.clientX - r.left, e.clientY - r.top);
   });
   hero.addEventListener("pointermove", (e) => {
     const r = canvas.getBoundingClientRect();
     pointer.x = e.clientX - r.left; pointer.y = e.clientY - r.top;
     if (e.pointerType !== "mouse") return;
+    if (inSky(pointer.y)) { lastPlant = null; return; } // start a fresh trail when they come back down
     if (!lastPlant) return plant(pointer.x, pointer.y);
     // fill in along the path so fast drags still leave an even trail
     let d = Math.hypot(pointer.x - lastPlant.x, pointer.y - lastPlant.y);
@@ -202,7 +236,7 @@
   // 3s after load, one red flower appears somewhere in the field so people know they can plant
   setTimeout(() => {
     if (flowers.length) return; // they've already found it
-    plant(W * (0.15 + Math.random() * 0.7), H * (0.35 + Math.random() * 0.5), "#b8322a");
+    plant(W * (0.15 + Math.random() * 0.7), H * (HORIZON + 0.06 + Math.random() * (0.88 - HORIZON - 0.06)), "#b8322a");
     lastPlant = null; // don't join the first real trail to this flower
   }, 3000);
   // start a fresh trail on re-entry instead of joining it to where the mouse left
