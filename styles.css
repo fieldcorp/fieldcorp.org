@@ -173,13 +173,32 @@ section, footer { scroll-margin-top: 40px; }
 .section-head { max-width: 640px; margin-bottom: 48px; }
 .section-head p { margin-top: 16px; }
 
-/* ---------- plots ---------- */
-.field { background: var(--bg-2); }
-.plots {
-  display: grid; gap: 14px;
-  grid-template-columns: repeat(6, 1fr);
-  grid-auto-rows: minmax(200px, auto);
+/* ---------- the field: sticky timelapse, plots scroll by ---------- */
+.field {
+  background: var(--bg-2);
+  display: grid; grid-template-columns: 1.35fr 1fr; gap: clamp(28px, 5vw, 80px); align-items: start;
 }
+.daylapse {
+  position: sticky; top: 96px; height: calc(100svh - 128px); min-height: 320px;
+  border-radius: var(--radius); overflow: hidden; background: var(--bg);
+}
+.daylapse-frames img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; opacity: 0; }
+.daylapse-frames img:first-child { opacity: 1; }
+.daylapse-time {
+  position: absolute; left: 16px; bottom: 22px; padding: 4px 10px; border-radius: 999px; font-size: 12px;
+  background: color-mix(in srgb, var(--band) 80%, transparent); color: var(--band-ink);
+}
+.daylapse-bar { position: absolute; left: 0; right: 0; bottom: 0; height: 3px; background: rgba(255,255,255,.18); }
+.daylapse-bar span { display: block; height: 100%; width: 0; background: var(--accent); }
+.field.no-lapse { grid-template-columns: 1fr; }
+.field.no-lapse .daylapse { display: none; }
+.steps { padding-bottom: 20vh; }
+.step { min-height: 78svh; display: flex; flex-direction: column; justify-content: center; margin: 0; }
+.step:first-child { min-height: calc(100svh - 128px); }
+.step > .plot { width: 100%; min-height: 360px; }
+.step.section-head > * { transition: opacity .5s ease; }
+.step:not(.on) .plot, .step.section-head:not(.on) > * { opacity: .28; }
+
 .plot {
   position: relative; display: flex; flex-direction: column;
   text-decoration: none; overflow: hidden;
@@ -195,15 +214,6 @@ section, footer { scroll-margin-top: 40px; }
           mask: linear-gradient(to bottom, #000, transparent 70%);
 }
 .plot:hover { transform: translateY(-4px); box-shadow: 0 14px 30px -18px rgba(70, 55, 40, .45); }
-/* plots are sized by position, so any number of branches lays out:
-   first is the big one, next two are wide, the rest are thirds */
-.plot { grid-column: span 2; }
-.plot:nth-child(1) { grid-column: span 3; grid-row: span 2; }
-.plot:nth-child(2), .plot:nth-child(3) { grid-column: span 3; }
-.plot:nth-child(4n+1) { --furrow: 0deg; }
-.plot:nth-child(4n+2) { --furrow: 90deg; }
-.plot:nth-child(4n+3) { --furrow: 45deg; }
-.plot:nth-child(4n)   { --furrow: -45deg; }
 .plot-empty  { background: transparent; border-style: dashed; }
 .plot-empty::before { display: none; }
 
@@ -390,16 +400,15 @@ section, footer { scroll-margin-top: 40px; }
 /* ---------- responsive ---------- */
 @media (max-width: 860px) {
   .ways-list { grid-template-columns: 1fr 1fr; }
-  .plots { grid-template-columns: 1fr 1fr; }
-  .plot { grid-column: span 1; }
-  .plot:nth-child(-n+3) { grid-column: span 2; grid-row: auto; }
+  .field { grid-template-columns: 1fr; gap: 0; }
+  .daylapse { top: 84px; height: 40svh; min-height: 0; z-index: 2; }
+  .step, .step:first-child { min-height: 62svh; }
+  .step > .plot { min-height: 300px; }
   .branch { grid-template-columns: 1fr; }
   .branch-flip .branch-copy { order: 0; }
   .more-grid { grid-template-columns: 1fr; }
 }
 @media (max-width: 520px) {
-  .plots { grid-template-columns: 1fr; }
-  .plot, .plot:nth-child(-n+3) { grid-column: auto; }
   .ways-list { grid-template-columns: 1fr; }
   .nav nav { gap: 14px; font-size: 12px; }
   .conditions { left: 16px; right: 16px; min-width: 0; }

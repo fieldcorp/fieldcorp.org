@@ -63,14 +63,20 @@
     </aside>
   </section>
 
-  <!-- the field: one plot per branch (rendered from content/branches.json) -->
+  <!-- the field: the day's timelapse stays put while the plots scroll by (content/timelapse.json, content/branches.json) -->
   <section class="field" id="field">
-    <div class="section-head">
-      <span class="eyebrow">01 — the field</span>
-      <h2 data-site="field_title">one field, many plots.</h2>
-      <p data-site="field_intro"></p>
+    <div class="daylapse" aria-hidden="true">
+      <div class="daylapse-frames"></div>
+      <span class="daylapse-time">--:--</span>
+      <span class="daylapse-bar"><span></span></span>
     </div>
-    <div class="plots"></div>
+    <div class="steps">
+      <div class="step section-head">
+        <span class="eyebrow">01 — the field</span>
+        <h2 data-site="field_title">one field, many plots.</h2>
+        <p data-site="field_intro"></p>
+      </div>
+    </div>
   </section>
 
   <!-- a section per growing/sprouting branch -->

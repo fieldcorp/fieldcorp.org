@@ -369,6 +369,7 @@
     renderBranches(branches, site);
     initLetter(site, branches);
     startTypewriter(branches.map((b) => b.name));
+    initDaylapse(timelapse);
     initSundial(timelapse);
     initTable();
     initVending(hub);
@@ -417,9 +418,10 @@
   }
 
   function renderBranches(branches, site) {
-    // plots
+    // plots: one scroll step each, after the intro
+    const FURROWS = ["0deg", "90deg", "45deg", "-45deg"];
     const plots = branches.map((b, i) => `
-      <a class="plot plot-${esc(b.drawing || "none")}" href="#${b.status === "seed" ? "more" : esc(b.slug)}">
+      <div class="step"><a class="plot plot-${esc(b.drawing || "none")}" style="--furrow:${FURROWS[i % 4]}" href="#${b.status === "seed" ? "more" : esc(b.slug)}">
         <div class="plot-art${b.photo ? " has-photo" : ""}">${b.photo ? `<img class="plot-photo" src="${esc(b.photo)}" alt="" loading="lazy">` : drawing(b.drawing)}</div>
         <div class="plot-meta">
           <span class="plot-no">plot ${pad(i + 1)}</span>
@@ -427,17 +429,17 @@
           <p>${esc(b.summary)}</p>
           <span class="status ${STATUS_CLASS[b.status] || ""}">${esc(b.status)}</span>
         </div>
-      </a>`);
+      </a></div>`);
     plots.push(`
-      <a class="plot plot-empty" href="#contact">
+      <div class="step"><a class="plot plot-empty" href="#contact">
         <div class="plot-art">${drawing("none")}</div>
         <div class="plot-meta">
           <span class="plot-no">plot ${pad(branches.length + 1)}</span>
           <h3>fallow</h3>
           <p>${esc(site.fallow_text || "this plot is open. got an experiment?")}</p>
         </div>
-      </a>`);
-    $(".plots").innerHTML = plots.join("");
+      </a></div>`);
+    $(".steps").insertAdjacentHTML("beforeend", plots.join(""));
 
     // full sections for growing / sprouting branches
     const used = new Set(); // each interactive feature appears once
@@ -516,6 +518,47 @@
   const NOW_H = (+nowParts.find((x) => x.type === "hour").value % 24) + +nowParts.find((x) => x.type === "minute").value / 60;
   const toHours = (s, d) => { const m = /^(\d{1,2}):(\d{2})/.exec(s || ""); return m ? +m[1] + +m[2] / 60 : d; };
   const fmtHours = (h) => { const m = Math.round(h * 60); return `${pad(Math.floor(m / 60) % 24)}:${pad(m % 60)}`; };
+
+  // the field section: scrolling through the steps plays the day's timelapse
+  function initDaylapse(tl) {
+    const section = $("#field"), steps = $(".steps", section);
+    const photos = (tl.photos || []).filter(Boolean);
+    const stepEls = $$(".step", steps);
+    // the step in focus is the one crossing this line; lower on phones, where the timelapse sits on top
+    const FOCUS = matchMedia("(max-width: 860px)").matches ? 0.72 : 0.5;
+    const io = new IntersectionObserver((entries) => {
+      for (const e of entries) e.target.classList.toggle("on", e.isIntersecting);
+    }, { rootMargin: `-${FOCUS * 100 - 5}% 0px -${95 - FOCUS * 100}% 0px` });
+    stepEls.forEach((el) => io.observe(el));
+    if (photos.length < 2) { section.classList.add("no-lapse"); stepEls.forEach((el) => el.classList.add("on")); return; }
+
+    const t0 = toHours(tl.first_photo_time, 7), t1 = toHours(tl.last_photo_time, 18.5);
+    const box = $(".daylapse", section);
+    $(".daylapse-frames", box).innerHTML = photos
+      .map((src, i) => `<img src="${esc(src)}" alt="" decoding="async"${i ? ' loading="lazy"' : ""}>`).join("");
+    const frames = $$(".daylapse-frames img", box);
+    const time = $(".daylapse-time", box), bar = $(".daylapse-bar span", box);
+    let shown = [0];
+    function update() {
+      // 0 when the first step reaches the focus line, 1 when the last one does
+      const first = stepEls[0].getBoundingClientRect(), last = stepEls.at(-1).getBoundingClientRect();
+      const mid = innerHeight * FOCUS;
+      const a = first.top + first.height / 2, b = last.top + last.height / 2;
+      const p = Math.min(1, Math.max(0, (mid - a) / (b - a || 1)));
+      const f = p * (frames.length - 1), i = Math.floor(f), k = f - i;
+      for (const j of shown) frames[j].style.opacity = 0;
+      frames[i].style.opacity = 1;
+      shown = [i];
+      if (frames[i + 1]) { frames[i + 1].style.opacity = k; shown.push(i + 1); } // blend into the next frame
+      time.textContent = fmtHours(t0 + p * (t1 - t0));
+      bar.style.width = `${p * 100}%`;
+    }
+    let queued = false;
+    const onScroll = () => { if (!queued) { queued = true; requestAnimationFrame(() => { queued = false; update(); }); } };
+    addEventListener("scroll", onScroll, { passive: true });
+    addEventListener("resize", onScroll);
+    update();
+  }
 
   function initSundial(tl) {
     const root = $(".feature-sundial");
@@ -643,7 +686,7 @@
 
   /* ---------- reveal on scroll ---------- */
   function initReveal() {
-    const targets = $$(".section-head, .plot, .branch-copy, .branch-art, .more-card, .about > *, .way, .letter");
+    const targets = $$(".section-head:not(.step), .plot, .branch-copy, .branch-art, .more-card, .about > *, .way, .letter");
     targets.forEach((el) => el.classList.add("reveal"));
     const io = new IntersectionObserver((entries) => {
       for (const e of entries) {
