@@ -449,8 +449,11 @@ section, footer { scroll-margin-top: 40px; }
 .or-mail { font-size: 13px; margin: 28px 0 0; }
 .mail { text-decoration: none; border-bottom: 1px solid var(--line); }
 .mail:hover { border-color: var(--ink); }
-.pile { display: block; width: 100%; height: 190px; margin-bottom: -56px; }
-.foot-meta { display: flex; justify-content: space-between; gap: 20px; font-size: 12px; color: var(--ink-soft); }
+/* the ufo and the pile sit over the whole contact section; the flowers fall over the letter */
+.contact { position: relative; }
+.pile { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; }
+.foot-meta { display: flex; justify-content: flex-end; gap: 28px; font-size: 12px; color: var(--ink-soft); }
+@media (max-width: 600px) { .contact-main { padding-bottom: 110px; } }
 
 /* reveal on scroll */
 .reveal { opacity: 0; transform: translateY(18px); transition: opacity .7s ease, transform .7s ease; }

@@ -421,8 +421,11 @@
     set(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch (e) {} },
   };
   let PW = 0, PH = 0, pile = [], aboard = store.get("field-aboard"), drop = null, pileRaf, pileOnScreen = false;
-  const pileCx = () => PW * (PW < 600 ? 0.5 : 0.74);
-  const ground = () => PH - 8;
+  // the pile rests on the "or write to" line (under it on phones); the ufo hovers over "04 — contact"
+  let groundY = 0, hoverY = 0;
+  const narrowPile = () => PW < 600;
+  const pileCx = () => PW * (narrowPile() ? 0.5 : 0.75);
+  const ground = () => groundY;
   function stolen(c) {
     aboard.push(c); store.set("field-aboard", aboard);
     if (reduceMotion) deliverNow();
@@ -439,6 +442,11 @@
     PW = pileCanvas.clientWidth; PH = pileCanvas.clientHeight;
     pileCanvas.width = PW * dpr; pileCanvas.height = PH * dpr;
     pctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    const top = pileCanvas.getBoundingClientRect().top;
+    groundY = narrowPile()
+      ? $(".foot-meta").getBoundingClientRect().top - top - 26
+      : $(".or-mail").getBoundingClientRect().bottom - top - 2;
+    hoverY = Math.max(30, $(".contact .eyebrow").getBoundingClientRect().top - top - 18);
     const colors = [...Array(PILE_SEED)].map((_, i) => ["#b5652f", "#e8d38c", "#c98d7a", "#f3f3e6", "#b8322a"][i % 5])
       .concat(store.get("field-pile")).slice(-PILE_MAX);
     pile = [];
@@ -463,7 +471,7 @@
     const items = cargo.map((c) => { const it = { c, ...landing(true), landed: false }; pile.push(it); return it; });
     const ltr = Math.random() < 0.5;
     const dropEnd = ZIP_IN + SETTLE + (items.length - 1) * GAP + FALL + AFTER;
-    drop = { t0: t, ltr, items, dropEnd, end: dropEnd + CHARGE_OUT + ZIP_OUT, y: 34, s: 1 };
+    drop = { t0: t, ltr, items, dropEnd, end: dropEnd + CHARGE_OUT + ZIP_OUT, y: hoverY, s: 1 };
   }
   function deliverNow() {
     for (const c of aboard.splice(0)) pile.push({ c, ...landing(true) });
@@ -532,8 +540,13 @@
     drawSaucer(pctx, s, r, g, b, t, charge || zipK, zipK);
     pctx.restore();
   }
+  // only start once the whole flight path, from the hover point down to the pile, is on screen
+  const pathInView = () => {
+    const top = pileCanvas.getBoundingClientRect().top;
+    return top + hoverY - 30 >= 0 && top + groundY + 10 <= innerHeight;
+  };
   const pileTick = (t) => {
-    if (!drop && aboard.length && pileOnScreen) startDrop(t);
+    if (!drop && aboard.length && pathInView()) startDrop(t);
     drawPile(t);
     if (pileOnScreen) pileRaf = requestAnimationFrame(pileTick);
   };
@@ -544,9 +557,13 @@
       pileOnScreen = e.isIntersecting;
       cancelAnimationFrame(pileRaf);
       if (pileOnScreen) pileRaf = requestAnimationFrame(pileTick);
-    }, { threshold: 0.6 }).observe(pileCanvas);
+    }).observe(pileCanvas);
   }
-  addEventListener("resize", () => { buildPile(); drawPile(0); });
+  // the footer's layout settles as fonts and content load, so rebuild whenever it changes size
+  new ResizeObserver(() => {
+    if (drop) { drop = null; savePile(); } // whatever was mid-air lands at once
+    buildPile(); drawPile(0);
+  }).observe($(".contact"));
   drawPile(0);
 
   /* ---------- field conditions (Berkeley) ---------- */
