@@ -368,6 +368,7 @@
       .map((b) => ({ ...b, slug: slugify(b.slug || b.name), status: b.status || "seed", feature: b.feature || "none" }));
     renderBranches(branches, site);
     initLetter(site, branches);
+    initPitch(site);
     startTypewriter(branches.map((b) => b.name));
     initDaylapse(timelapse);
     initSundial(timelapse);
@@ -388,6 +389,33 @@
     const ways = (site.principles || []).filter((w) => w && w.title);
     $(".ways-list").innerHTML = ways.map((w) => `<li class="way"><h3>${esc(w.title)}</h3><p>${esc(w.text || "")}</p></li>`).join("");
     $("#ways").hidden = !ways.length;
+  }
+
+  function initPitch(site) {
+    const flip = $(".flip");
+    if (!flip) return;
+    const form = $(".pitch", flip), note = $(".pitch-note", flip), front = $(".flip-front", flip);
+    const turn = (open) => {
+      flip.classList.toggle("flipped", open);
+      front.inert = open; form.inert = !open;
+      if (open) setTimeout(() => form.elements.idea.focus({ preventScroll: true }), 500);
+    };
+    turn(false);
+    front.addEventListener("click", () => turn(true));
+    front.addEventListener("keydown", (e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); turn(true); } });
+    $(".flip-back-btn", form).addEventListener("click", () => { turn(false); front.focus({ preventScroll: true }); });
+    form.addEventListener("submit", (e) => {
+      e.preventDefault();
+      const f = form.elements, idea = f.idea.value.trim(), name = f.name.value.trim(), from = f.email.value.trim();
+      const missing = [f.idea, f.name].filter((el) => !el.value.trim());
+      missing.forEach((el) => el.classList.add("missing"));
+      if (missing.length) { missing[0].focus(); note.textContent = "tell us the idea and your name."; return; }
+      if (!site.email) return;
+      const body = `my experiment is ${idea}. i'm ${name}.` + (from ? ` reach me at ${from}.` : "");
+      location.href = `mailto:${site.email}?subject=${encodeURIComponent(`a plot pitch from ${name}`)}&body=${encodeURIComponent(body)}`;
+      note.textContent = `your email app should open with the pitch. if it doesn't, write to ${site.email}.`;
+    });
+    form.addEventListener("input", (e) => e.target.classList.remove("missing"));
   }
 
   // the contact note: blanks grow with what's typed; sending opens the visitor's own email app
@@ -430,15 +458,34 @@
           <span class="status ${STATUS_CLASS[b.status] || ""}">${esc(b.status)}</span>
         </div>
       </a></div>`);
+    // the open plot flips over to a form for pitching an experiment
     plots.push(`
-      <div class="step"><a class="plot plot-empty" href="#contact">
-        <div class="plot-art">${drawing("none")}</div>
-        <div class="plot-meta">
-          <span class="plot-no">plot ${pad(branches.length + 1)}</span>
-          <h3>fallow</h3>
-          <p>${esc(site.fallow_text || "this plot is open. got an experiment?")}</p>
+      <div class="step"><div class="flip">
+        <div class="flip-inner">
+          <div class="flip-face flip-front plot plot-empty drawn" role="button" tabindex="0" aria-label="Pitch an experiment for the open plot">
+            <div class="plot-art">${drawing("none")}</div>
+            <div class="plot-meta">
+              <span class="plot-no">plot ${pad(branches.length + 1)}</span>
+              <h3>fallow</h3>
+              <p>${esc(site.fallow_text || "this plot is open. got an experiment?")}</p>
+              <span class="status">tap to pitch</span>
+            </div>
+          </div>
+          <form class="flip-face flip-back pitch" novalidate>
+            <span class="plot-no">plot ${pad(branches.length + 1)} — pitch an experiment</span>
+            <p>
+              my experiment is <input name="idea" placeholder="a few words about it" aria-label="Your experiment"><br>
+              i'm <input name="name" placeholder="your name" autocomplete="name" aria-label="Your name"><br>
+              reach me at <input name="email" type="email" placeholder="your email" autocomplete="email" aria-label="Your email">
+            </p>
+            <div class="pitch-actions">
+              <button type="submit">send pitch →</button>
+              <button type="button" class="flip-back-btn">← back</button>
+            </div>
+            <span class="pitch-note muted" aria-live="polite"></span>
+          </form>
         </div>
-      </a></div>`);
+      </div></div>`);
     $(".steps").insertAdjacentHTML("beforeend", plots.join(""));
 
     // full sections for growing / sprouting branches
@@ -524,8 +571,7 @@
     const section = $("#field"), steps = $(".steps", section);
     const photos = (tl.photos || []).filter(Boolean);
     const stepEls = $$(".step", steps);
-    // the step in focus is the one crossing this line; lower on phones, where the timelapse sits on top
-    const FOCUS = matchMedia("(max-width: 860px)").matches ? 0.72 : 0.5;
+    const FOCUS = 0.5; // the step in focus is the one crossing the middle of the screen
     const io = new IntersectionObserver((entries) => {
       for (const e of entries) e.target.classList.toggle("on", e.isIntersecting);
     }, { rootMargin: `-${FOCUS * 100 - 5}% 0px -${95 - FOCUS * 100}% 0px` });
@@ -686,7 +732,7 @@
 
   /* ---------- reveal on scroll ---------- */
   function initReveal() {
-    const targets = $$(".section-head:not(.step), .plot, .branch-copy, .branch-art, .more-card, .about > *, .way, .letter");
+    const targets = $$(".section-head:not(.intro-card), .plot:not(.flip-front), .branch-copy, .branch-art, .more-card, .about > *, .way, .letter");
     targets.forEach((el) => el.classList.add("reveal"));
     const io = new IntersectionObserver((entries) => {
       for (const e of entries) {
