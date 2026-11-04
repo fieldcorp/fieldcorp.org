@@ -4,6 +4,8 @@
   const $$ = (q, el = document) => [...el.querySelectorAll(q)];
   const reduceMotion = matchMedia("(prefers-reduced-motion: reduce)").matches;
   const css = (name) => getComputedStyle(document.documentElement).getPropertyValue(name).trim();
+  // "rgb(1, 2, 3)" or "#010203" → [1, 2, 3]
+  const rgb = (c) => c[0] === "#" ? [1, 3, 5].map((i) => parseInt(c.slice(i, i + 2), 16)) : (c.match(/[\d.]+/g) || [115, 100, 85]).slice(0, 3).map(Number);
   const TZ = "America/Los_Angeles";
   const SVGNS = "http://www.w3.org/2000/svg";
 
@@ -29,8 +31,10 @@
   const ctx = canvas.getContext("2d");
   const bloomCanvas = $(".blooms");
   const fctx = bloomCanvas.getContext("2d");
-  let W, H, blades, bend, flowers = [];
+  let W, H, blades, rows, stars, bend, flowers = [];
   const pointer = { x: -9999, y: -9999 };
+  const HORIZON = 0.42; // at night the sky is above this line (as a share of the hero's height)
+  let night = document.documentElement.dataset.theme === "night" ? 1 : 0; // 0 day … 1 night, eased during the fade
 
   function buildField() {
     const dpr = Math.min(devicePixelRatio || 1, 2);
@@ -40,8 +44,9 @@
       c2.setTransform(dpr, 0, 0, dpr, 0, 0);
     }
     const gap = W < 600 ? 13 : 16;
-    blades = [];
+    blades = []; rows = [];
     for (let y = gap; y < H + gap; y += gap) {
+      rows.push({ y, start: blades.length });
       for (let x = (y / gap) % 2 ? gap / 2 : 0; x < W + gap; x += gap) {
         const depth = Math.pow(y / H, 1.6); // dots at the top, grass at the bottom
         blades.push({
@@ -53,29 +58,83 @@
       }
     }
     bend = new Float32Array(blades.length);
+    stars = [];
+    const n = Math.max(60, Math.min(400, Math.round((W * H) / 5000)));
+    for (let i = 0; i < n; i++) {
+      const y = Math.pow(Math.random(), 1.4) * H * (HORIZON + 0.08); // thicker toward the top
+      stars.push({ x: Math.random() * W, y, r: 0.4 + Math.random() * 0.9, phase: Math.random() * 6.28, speed: 0.0008 + Math.random() * 0.002 });
+    }
+  }
+
+  // sky behind the grass: a sunset glow while fading, then stars and a full moon
+  function drawSky(t) {
+    const glow = Math.sin(Math.PI * night); // peaks halfway through the fade
+    if (glow > 0.01) {
+      const g = ctx.createLinearGradient(0, 0, 0, H * (HORIZON + 0.25));
+      g.addColorStop(0, "rgba(0,0,0,0)");
+      g.addColorStop(0.7, `rgba(233,135,90,${0.28 * glow})`);
+      g.addColorStop(1, "rgba(233,135,90,0)");
+      ctx.fillStyle = g; ctx.fillRect(0, 0, W, H);
+    }
+    if (night < 0.01) return;
+    const sky = ctx.createLinearGradient(0, 0, 0, H * HORIZON);
+    sky.addColorStop(0, `rgba(4,7,16,${0.75 * night})`);
+    sky.addColorStop(1, "rgba(4,7,16,0)");
+    ctx.fillStyle = sky; ctx.fillRect(0, 0, W, H * HORIZON);
+
+    const s = Math.pow(night, 1.6); // stars come out last
+    ctx.fillStyle = "#f4f1e4";
+    for (const st of stars) {
+      ctx.globalAlpha = s * (0.35 + 0.65 * (0.5 + 0.5 * Math.sin(t * st.speed + st.phase)));
+      ctx.beginPath(); ctx.arc(st.x, st.y, st.r, 0, 6.283); ctx.fill();
+    }
+
+    const mx = W * 0.8, my = H * 0.17, mr = Math.max(16, Math.min(34, W * 0.022));
+    ctx.globalAlpha = 1;
+    const halo = ctx.createRadialGradient(mx, my, mr * 0.8, mx, my, mr * 7);
+    halo.addColorStop(0, `rgba(236,232,210,${0.22 * night})`);
+    halo.addColorStop(1, "rgba(236,232,210,0)");
+    ctx.fillStyle = halo; ctx.fillRect(mx - mr * 7, my - mr * 7, mr * 14, mr * 14);
+    ctx.fillStyle = `rgba(240,236,218,${night})`;
+    ctx.beginPath(); ctx.arc(mx, my, mr, 0, 6.283); ctx.fill();
+    ctx.fillStyle = `rgba(190,184,164,${0.45 * night})`;
+    for (const [cx, cy, cr] of [[-0.3, -0.2, 0.22], [0.25, 0.15, 0.16], [-0.05, 0.4, 0.12], [0.35, -0.35, 0.09]]) {
+      ctx.beginPath(); ctx.arc(mx + cx * mr, my + cy * mr, cr * mr, 0, 6.283); ctx.fill();
+    }
   }
 
   function drawField(t) {
     ctx.clearRect(0, 0, W, H);
-    ctx.strokeStyle = css("--ink");
-    ctx.globalAlpha = 0.42;
+    drawSky(t);
+    // at night the grass is lit from the moon's side and the dots in the sky fade out
+    const [r, g, b0] = rgb(css("--ink"));
+    const lit = ctx.createLinearGradient(0, 0, W * 0.8, 0);
+    lit.addColorStop(0, `rgba(${r},${g},${b0},${1 - 0.55 * night})`);
+    lit.addColorStop(1, `rgb(${r},${g},${b0})`);
+    ctx.strokeStyle = lit;
     ctx.lineWidth = 1.2;
     ctx.lineCap = "round";
-    ctx.beginPath();
     const R = 120;
-    for (let i = 0; i < blades.length; i++) {
-      const b = blades[i];
-      const wind = Math.sin(t * 0.0011 + b.x * 0.008 + b.y * 0.003 + b.phase * 0.3) * 0.22;
-      const dx = b.x - pointer.x, dy = b.y - pointer.y;
-      const d = Math.hypot(dx, dy);
-      const push = d < R ? Math.pow(1 - d / R, 2) * 1.3 * Math.sign(dx || 1) : 0;
-      bend[i] += (wind + push - bend[i]) * 0.12;
-      const a = -Math.PI / 2 + bend[i];
-      const tx = b.x + Math.cos(a) * b.len, ty = b.y + Math.sin(a) * b.len;
-      ctx.moveTo(b.x, b.y);
-      ctx.quadraticCurveTo(b.x, b.y - b.len * 0.5, tx, ty);
+    for (let ri = 0; ri < rows.length; ri++) {
+      const fadeSky = Math.min(1, Math.max(0, (rows[ri].y / H - HORIZON + 0.06) / 0.16));
+      ctx.globalAlpha = 0.42 * (1 - night + night * fadeSky);
+      ctx.beginPath();
+      const end = ri + 1 < rows.length ? rows[ri + 1].start : blades.length;
+      for (let i = rows[ri].start; i < end; i++) {
+        const b = blades[i];
+        const wind = Math.sin(t * 0.0011 + b.x * 0.008 + b.y * 0.003 + b.phase * 0.3) * 0.22;
+        const dx = b.x - pointer.x, dy = b.y - pointer.y;
+        const d = Math.hypot(dx, dy);
+        const push = d < R ? Math.pow(1 - d / R, 2) * 1.3 * Math.sign(dx || 1) : 0;
+        bend[i] += (wind + push - bend[i]) * 0.12;
+        const a = -Math.PI / 2 + bend[i];
+        const tx = b.x + Math.cos(a) * b.len, ty = b.y + Math.sin(a) * b.len;
+        ctx.moveTo(b.x, b.y);
+        ctx.quadraticCurveTo(b.x, b.y - b.len * 0.5, tx, ty);
+      }
+      ctx.stroke();
     }
-    ctx.stroke();
+    ctx.globalAlpha = 1;
 
     // planted flowers
     fctx.clearRect(0, 0, W, H);
@@ -152,6 +211,98 @@
   }, 3000);
   // start a fresh trail on re-entry instead of joining it to where the mouse left
   hero.addEventListener("pointerleave", () => { pointer.x = pointer.y = -9999; lastPlant = null; });
+
+  /* ---------- day / sunset / night ---------- */
+  // the palette fades day → sunset → night (and back through dawn); the hero sky follows `night`
+  const root = document.documentElement;
+  const toggle = $(".theme-toggle");
+  const FADE = 1400; // per leg, matches --fade
+  let theme = root.dataset.theme === "night" ? "night" : "day";
+  let fadeTimer, tweenRaf;
+  const ease = (k) => k * k * (3 - 2 * k);
+  function tweenNight(to) {
+    cancelAnimationFrame(tweenRaf);
+    const from = night, t0 = performance.now();
+    const step = (now) => {
+      const k = Math.min(1, (now - t0) / (FADE * 2));
+      night = from + (to - from) * ease(k);
+      if (k < 1) tweenRaf = requestAnimationFrame(step);
+    };
+    tweenRaf = requestAnimationFrame(step);
+  }
+  function setTheme(to, animate = true) {
+    if (to === theme) return;
+    theme = to;
+    clearTimeout(fadeTimer);
+    toggle.setAttribute("aria-pressed", to === "night");
+    const settle = () => { if (to === "night") root.dataset.theme = "night"; else delete root.dataset.theme; };
+    if (!animate || reduceMotion) {
+      settle(); night = to === "night" ? 1 : 0;
+      if (reduceMotion) drawField(0);
+    } else {
+      root.dataset.theme = "dusk";
+      fadeTimer = setTimeout(settle, FADE);
+      tweenNight(to === "night" ? 1 : 0);
+    }
+    if (to === "night") scheduleShot(2500);
+  }
+  toggle.setAttribute("aria-pressed", theme === "night");
+  toggle.addEventListener("click", () => {
+    const to = theme === "night" ? "day" : "night";
+    try { localStorage.setItem("field-theme", to); } catch (e) {}
+    setTheme(to);
+  });
+  // follow the device's setting until someone picks with the toggle
+  matchMedia("(prefers-color-scheme: dark)").addEventListener("change", (e) => {
+    let picked = null;
+    try { picked = localStorage.getItem("field-theme"); } catch (e) {}
+    if (!picked) setTheme(e.matches ? "night" : "day");
+  });
+
+  // every so often at night a shooting star crosses the screen, left to right
+  const sky = $(".shooting");
+  const sctx = sky.getContext("2d");
+  let shotTimer;
+  function scheduleShot(delay = 8000 + Math.random() * 12000) {
+    clearTimeout(shotTimer);
+    if (reduceMotion) return;
+    shotTimer = setTimeout(() => {
+      if (theme === "night" && !document.hidden) shoot();
+      if (theme === "night") scheduleShot();
+    }, delay);
+  }
+  function shoot() {
+    const dpr = Math.min(devicePixelRatio || 1, 2);
+    const vw = innerWidth, vh = innerHeight;
+    sky.width = vw * dpr; sky.height = vh * dpr;
+    sctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    const x0 = -vw * 0.05 + Math.random() * vw * 0.35, y0 = vh * (0.06 + Math.random() * 0.3);
+    const ang = (6 + Math.random() * 14) * Math.PI / 180; // a slight fall
+    const dist = vw * (0.55 + Math.random() * 0.35), tail = 110 + Math.random() * 110;
+    const dur = 900 + Math.random() * 500, t0 = performance.now();
+    const step = (now) => {
+      const k = Math.min(1, (now - t0) / dur);
+      const d = dist * (1 - Math.pow(1 - k, 2));
+      const hx = x0 + Math.cos(ang) * d, hy = y0 + Math.sin(ang) * d;
+      const tl = tail * Math.min(1, k * 3);
+      const tx = hx - Math.cos(ang) * tl, ty = hy - Math.sin(ang) * tl;
+      const a = Math.sin(Math.PI * k);
+      sctx.clearRect(0, 0, vw, vh);
+      const g = sctx.createLinearGradient(tx, ty, hx, hy);
+      g.addColorStop(0, "rgba(244,241,228,0)");
+      g.addColorStop(1, `rgba(244,241,228,${0.85 * a})`);
+      sctx.strokeStyle = g; sctx.lineWidth = 1.6; sctx.lineCap = "round";
+      sctx.beginPath(); sctx.moveTo(tx, ty); sctx.lineTo(hx, hy); sctx.stroke();
+      const glow = sctx.createRadialGradient(hx, hy, 0, hx, hy, 6);
+      glow.addColorStop(0, `rgba(255,252,238,${a})`);
+      glow.addColorStop(1, "rgba(255,252,238,0)");
+      sctx.fillStyle = glow; sctx.beginPath(); sctx.arc(hx, hy, 6, 0, 6.283); sctx.fill();
+      if (k < 1) requestAnimationFrame(step);
+      else sctx.clearRect(0, 0, vw, vh);
+    };
+    requestAnimationFrame(step);
+  }
+  if (theme === "night") scheduleShot(3000);
 
   /* ---------- field conditions (Berkeley) ---------- */
   const timeFmt = new Intl.DateTimeFormat("en-US", { hour: "2-digit", minute: "2-digit", second: "2-digit", hour12: false, timeZone: TZ });
