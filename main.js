@@ -676,6 +676,7 @@
       const t0 = toHours(tl.first_photo_time, 7), t1 = toHours(tl.last_photo_time, 18.5);
       const timeAt = (i) => t0 + (i * (t1 - t0)) / (photos.length - 1);
       $(".dial", root).remove();
+      root.closest(".branch")?.classList.add("branch-bg"); // the photos become the section's background
       const box = $(".timelapse", root);
       box.hidden = false;
       $(".timelapse-frames", box).innerHTML = photos.map((src) => `<img src="${esc(src)}" alt="" decoding="async">`).join("");

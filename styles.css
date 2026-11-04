@@ -308,6 +308,33 @@ section, footer { scroll-margin-top: 40px; }
 .slider input { flex: 1; accent-color: var(--ink); }
 .slider output { width: 5ch; text-align: right; font-variant-numeric: tabular-nums; }
 
+/* a branch whose timelapse fills the whole section: text and slider sit on the photo, no boxes */
+.branch-bg { position: relative; isolation: isolate; min-height: 100svh; overflow: hidden; color: #f6f3e7; border-top: 0; }
+.branch-bg .branch-art, .branch-bg .feature { position: static; }
+.branch-bg .branch-art.reveal { opacity: 1; transform: none; transition: none; } /* the background shouldn't slide in */
+.branch-bg .timelapse { position: absolute; inset: 0; z-index: -2; aspect-ratio: auto; border-radius: 0; }
+/* shade from the text's side and along the bottom so light type reads on bright sky */
+.branch-bg::before {
+  content: ""; position: absolute; inset: 0; z-index: -1; pointer-events: none;
+  background:
+    linear-gradient(to right, rgba(22, 20, 16, .62), rgba(22, 20, 16, .28) 45%, rgba(22, 20, 16, 0) 75%),
+    linear-gradient(to top, rgba(22, 20, 16, .5), rgba(22, 20, 16, 0) 30%);
+}
+.branch-bg.branch-flip::before {
+  background:
+    linear-gradient(to left, rgba(22, 20, 16, .62), rgba(22, 20, 16, .28) 45%, rgba(22, 20, 16, 0) 75%),
+    linear-gradient(to top, rgba(22, 20, 16, .5), rgba(22, 20, 16, 0) 30%);
+}
+.branch-bg .branch-copy { text-shadow: 0 1px 14px rgba(0, 0, 0, .35); }
+.branch-bg .eyebrow { color: rgba(246, 243, 231, .75); }
+.branch-bg .cta { color: #f6f3e7; border-color: rgba(246, 243, 231, .8); text-shadow: none; }
+.branch-bg .cta:hover { background: #f6f3e7; color: #2b2620; }
+.branch-bg .slider {
+  position: absolute; left: var(--gutter); right: var(--gutter); bottom: 28px; margin: 0;
+  color: #f6f3e7; text-shadow: 0 1px 8px rgba(0, 0, 0, .4);
+}
+.branch-bg .slider input { accent-color: #f6f3e7; }
+
 /* table */
 .table-scene { position: relative; padding-top: 10px; }
 .lights { width: 100%; height: auto; display: block; overflow: visible; }
@@ -432,6 +459,7 @@ section, footer { scroll-margin-top: 40px; }
 @media (max-width: 860px) {
   .ways-list { grid-template-columns: 1fr 1fr; }
   .field { grid-template-columns: 1fr; }
+  .branch-bg::before, .branch-bg.branch-flip::before { background: linear-gradient(rgba(22, 20, 16, .58), rgba(22, 20, 16, .38) 55%, rgba(22, 20, 16, .55)); }
   .daylapse { z-index: 2; } /* on phones the cards slide under the framed timelapse */
   .steps { grid-column: 1; padding-top: 100svh; }
   .step, .step:first-child { min-height: 62svh; }
