@@ -96,7 +96,7 @@
       beam = Math.min(1, kb * 5, (1 - kb) * 6);
       f.lift = ease(Math.min(1, Math.max(0, (kb - 0.15) / 0.7)));
     } else {
-      if (f) { const i = flowers.indexOf(f); if (i >= 0) flowers.splice(i, 1); } // it's aboard
+      if (f) { const i = flowers.indexOf(f); if (i >= 0) { flowers.splice(i, 1); stolen(f.c); } } // it's aboard
       if (e < chargeEnd) charge = (e - beamEnd) / CHARGE;
       else {
         zip = (e - chargeEnd) / ZIP;
@@ -144,18 +144,24 @@
     // drifting: a gentle rock. charging: lean back. zipping: stretched thin along the way it's going
     ctx.rotate(charge || zip ? -0.18 * dir * Math.min(1, charge * 2 || 1) : Math.sin(e / 330 + 0.6) * 0.08 * dir);
     if (zip) ctx.scale(1 + 4 * zip, 1 - 0.5 * zip);
-    ctx.fillStyle = `rgba(${r},${g},${b},.28)`; // glass dome
-    ctx.strokeStyle = `rgb(${r},${g},${b})`; ctx.lineWidth = 1.2;
-    ctx.beginPath(); ctx.ellipse(0, -3 * s, 7 * s, 7 * s, 0, Math.PI, 0); ctx.fill(); ctx.stroke();
-    ctx.fillStyle = `rgb(${r},${g},${b})`; // saucer
-    ctx.beginPath(); ctx.ellipse(0, 0, 18 * s, 4.5 * s, 0, 0, Math.PI * 2); ctx.fill();
-    ctx.fillStyle = css("--accent"); // lights chasing along the rim, racing while it charges
-    const lit = Math.floor(t / (charge || zip ? 50 : 220)) % 4;
-    for (let i = 0; i < 4; i++) {
-      ctx.globalAlpha = i === lit || zip ? 1 : 0.35;
-      ctx.beginPath(); ctx.arc((i - 1.5) * 8 * s, 0.5 * s, 1.6 * s, 0, Math.PI * 2); ctx.fill();
-    }
+    drawSaucer(ctx, s, r, g, b, t, charge || zip, zip);
     ctx.restore();
+  }
+
+  // the saucer itself, drawn at the origin (the caller translates and turns it)
+  function drawSaucer(c, s, r, g, b, t, racing, allLit) {
+    c.fillStyle = `rgba(${r},${g},${b},.28)`; // glass dome
+    c.strokeStyle = `rgb(${r},${g},${b})`; c.lineWidth = 1.2;
+    c.beginPath(); c.ellipse(0, -3 * s, 7 * s, 7 * s, 0, Math.PI, 0); c.fill(); c.stroke();
+    c.fillStyle = `rgb(${r},${g},${b})`; // saucer
+    c.beginPath(); c.ellipse(0, 0, 18 * s, 4.5 * s, 0, 0, Math.PI * 2); c.fill();
+    c.fillStyle = css("--accent"); // lights chasing along the rim, racing while it charges
+    const lit = Math.floor(t / (racing ? 50 : 220)) % 4;
+    for (let i = 0; i < 4; i++) {
+      c.globalAlpha = i === lit || allLit ? 1 : 0.35;
+      c.beginPath(); c.arc((i - 1.5) * 8 * s, 0.5 * s, 1.6 * s, 0, Math.PI * 2); c.fill();
+    }
+    c.globalAlpha = 1;
   }
 
   // sky behind the grass: a sunset glow while fading, then stars and moonlight from the corner
@@ -403,6 +409,145 @@
     requestAnimationFrame(step);
   }
   if (theme === "night") scheduleShot(3000);
+
+  /* ---------- the pile: where the ufo leaves what it takes ---------- */
+  // flowers stolen from the field wait aboard; when the footer comes into view the ufo
+  // zips in, lowers them onto the pile and zips off. each visitor's pile is kept in their browser
+  const pileCanvas = $(".pile");
+  const pctx = pileCanvas.getContext("2d");
+  const PILE_SEED = 60, PILE_MAX = 160;
+  const store = {
+    get(k) { try { return JSON.parse(localStorage.getItem(k)) || []; } catch (e) { return []; } },
+    set(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch (e) {} },
+  };
+  let PW = 0, PH = 0, pile = [], aboard = store.get("field-aboard"), drop = null, pileRaf, pileOnScreen = false;
+  const pileCx = () => PW * (PW < 600 ? 0.5 : 0.74);
+  const ground = () => PH - 8;
+  function stolen(c) {
+    aboard.push(c); store.set("field-aboard", aboard);
+    if (reduceMotion) deliverNow();
+  }
+  // the pile is a mound that grows with every flower; seed flowers fill it in, new ones land on top
+  function landing(onTop) {
+    const n = pile.length + 1, half = 40 + Math.sqrt(n) * 7, peak = 8 + Math.sqrt(n) * 6.5;
+    const dx = Math.max(-0.95, Math.min(0.95, (Math.random() + Math.random() + Math.random() - 1.5) / 1.2)) * half;
+    const h = peak * (1 - (dx / half) ** 2) * (onTop ? 1 : 0.5 + Math.random() * 0.5);
+    return { x: pileCx() + dx, y: ground() - 3 - h, rot: Math.random() * 6.28, sc: 1.05 + Math.random() * 0.4 };
+  }
+  function buildPile() {
+    const dpr = Math.min(devicePixelRatio || 1, 2);
+    PW = pileCanvas.clientWidth; PH = pileCanvas.clientHeight;
+    pileCanvas.width = PW * dpr; pileCanvas.height = PH * dpr;
+    pctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    const colors = [...Array(PILE_SEED)].map((_, i) => ["#b5652f", "#e8d38c", "#c98d7a", "#f3f3e6", "#b8322a"][i % 5])
+      .concat(store.get("field-pile")).slice(-PILE_MAX);
+    pile = [];
+    for (const c of colors) pile.push({ c, ...landing(pile.length >= PILE_SEED) });
+  }
+  function drawHead(c, x, y, sc, color, rot) {
+    c.save(); c.translate(x, y); c.rotate(rot); c.scale(sc, sc);
+    c.strokeStyle = css("--accent-2"); c.lineWidth = 1.2; c.lineCap = "round";
+    c.beginPath(); c.moveTo(0, 0); c.quadraticCurveTo(5, 6, 4, 14); c.stroke(); // a bit of stem
+    c.fillStyle = color;
+    for (let p = 0; p < 5; p++) {
+      const a = (p / 5) * Math.PI * 2;
+      c.beginPath(); c.arc(Math.cos(a) * 4, Math.sin(a) * 4, 3.2, 0, Math.PI * 2); c.fill();
+    }
+    c.fillStyle = "#e8d38c"; c.beginPath(); c.arc(0, 0, 2.4, 0, Math.PI * 2); c.fill();
+    c.restore();
+  }
+  const ZIP_IN = 260, SETTLE = 450, FALL = 750, GAP = 380, AFTER = 350, CHARGE_OUT = 500, ZIP_OUT = 260;
+  function startDrop(t) {
+    const cargo = aboard.splice(0); store.set("field-aboard", aboard);
+    // landings are worked out one at a time so later flowers stack on earlier ones
+    const items = cargo.map((c) => { const it = { c, ...landing(true), landed: false }; pile.push(it); return it; });
+    const ltr = Math.random() < 0.5;
+    const dropEnd = ZIP_IN + SETTLE + (items.length - 1) * GAP + FALL + AFTER;
+    drop = { t0: t, ltr, items, dropEnd, end: dropEnd + CHARGE_OUT + ZIP_OUT, y: 34, s: 1 };
+  }
+  function deliverNow() {
+    for (const c of aboard.splice(0)) pile.push({ c, ...landing(true) });
+    store.set("field-aboard", aboard);
+    savePile(); drawPile(0);
+  }
+  const savePile = () => store.set("field-pile", pile.slice(PILE_SEED).map((p) => p.c).slice(-(PILE_MAX - PILE_SEED)));
+
+  function drawPile(t) {
+    pctx.clearRect(0, 0, PW, PH);
+    const [r, g, b] = rgb(css("--ink"));
+    // a little ground under the pile
+    pctx.strokeStyle = css("--line"); pctx.lineWidth = 1;
+    const cx = pileCx();
+    pctx.beginPath(); pctx.moveTo(cx - 160, ground() + 2); pctx.lineTo(cx + 160, ground() + 2); pctx.stroke();
+    // back to front: the lowest flowers first, so the ones on top sit over them
+    for (const p of pile.filter((p) => p.landed !== false).sort((a, b) => b.y - a.y)) drawHead(pctx, p.x, p.y, p.sc, p.c, p.rot);
+    if (!drop) return;
+
+    const d = drop, e = t - d.t0, s = d.s, dir = d.ltr ? 1 : -1;
+    if (e >= d.end) { drop = null; savePile(); return; }
+    let x = cx, zipK = 0, charge = 0;
+    if (e < ZIP_IN) { zipK = 1 - e / ZIP_IN; x = cx - dir * Math.pow(zipK, 2) * (PW + 120); } // arriving at light speed
+    else if (e > d.dropEnd + CHARGE_OUT) { zipK = (e - d.dropEnd - CHARGE_OUT) / ZIP_OUT; x = cx + dir * Math.pow(zipK, 2) * (PW + 120); }
+    else if (e > d.dropEnd) charge = (e - d.dropEnd) / CHARGE_OUT;
+    const y = d.y + Math.sin(e / 400) * 3;
+    const beamOn = e > ZIP_IN + SETTLE * 0.4 && e < d.dropEnd;
+    if (beamOn) {
+      const k = Math.min(1, (e - ZIP_IN - SETTLE * 0.4) / 250, (d.dropEnd - e) / 250);
+      const top = y + 3, bottom = ground() + 2, wTop = 8, wBot = 70;
+      pctx.save();
+      pctx.beginPath();
+      pctx.moveTo(x - wTop, top); pctx.lineTo(x + wTop, top); pctx.lineTo(cx + wBot, bottom); pctx.lineTo(cx - wBot, bottom);
+      pctx.closePath(); pctx.clip();
+      const dpr = pileCanvas.width / PW, left = cx - wBot - 8, width = wBot * 2 + 16;
+      for (let yy = top; yy < bottom; yy += 2) {
+        const off = Math.sin(yy * 0.09 - t * 0.012) * 5 * k;
+        pctx.drawImage(pileCanvas, left * dpr, yy * dpr, width * dpr, 2 * dpr, left + off, yy, width, 2);
+      }
+      const haze = pctx.createLinearGradient(0, top, 0, bottom);
+      haze.addColorStop(0, `rgba(255,255,255,${(0.22 - 0.1 * night) * k})`);
+      haze.addColorStop(1, `rgba(255,255,255,${0.04 * k})`);
+      pctx.fillStyle = haze; pctx.fillRect(left, top, width, bottom - top);
+      pctx.restore();
+    }
+    // flowers on their way down: out of the saucer, turning, growing, onto the pile
+    d.items.forEach((it, i) => {
+      const k = (e - ZIP_IN - SETTLE - i * GAP) / FALL;
+      if (k < 0 || it.landed !== false) return;
+      if (k >= 1) { it.landed = true; return; }
+      const q = ease(k);
+      drawHead(pctx, x + (it.x - x) * q, y + 8 + (it.y - y - 8) * q, it.sc * (0.3 + 0.7 * q), it.c, it.rot * q + (1 - q) * 3);
+    });
+    if (zipK && e >= ZIP_IN) {
+      // the streak it leaves behind
+      const streak = pctx.createLinearGradient(cx, 0, x, 0);
+      streak.addColorStop(0, `rgba(${r},${g},${b},0)`);
+      streak.addColorStop(1, `rgba(${r},${g},${b},${0.7 * (1 - zipK * 0.5)})`);
+      pctx.strokeStyle = streak; pctx.lineWidth = 3; pctx.lineCap = "round";
+      pctx.beginPath(); pctx.moveTo(cx, y); pctx.lineTo(x, y); pctx.stroke();
+    }
+    pctx.save();
+    pctx.translate(x + (charge ? (Math.random() - 0.5) * 2 * charge : 0), y);
+    pctx.rotate(zipK || charge ? -0.18 * dir : Math.sin(e / 330) * 0.06);
+    if (zipK) pctx.scale(1 + 4 * zipK, 1 - 0.5 * zipK);
+    drawSaucer(pctx, s, r, g, b, t, charge || zipK, zipK);
+    pctx.restore();
+  }
+  const pileTick = (t) => {
+    if (!drop && aboard.length && pileOnScreen) startDrop(t);
+    drawPile(t);
+    if (pileOnScreen) pileRaf = requestAnimationFrame(pileTick);
+  };
+  buildPile();
+  if (reduceMotion) deliverNow();
+  else {
+    new IntersectionObserver(([e]) => {
+      pileOnScreen = e.isIntersecting;
+      cancelAnimationFrame(pileRaf);
+      if (pileOnScreen) pileRaf = requestAnimationFrame(pileTick);
+    }, { threshold: 0.6 }).observe(pileCanvas);
+  }
+  addEventListener("resize", () => { buildPile(); drawPile(0); });
+  drawPile(0);
 
   /* ---------- field conditions (Berkeley) ---------- */
   const timeFmt = new Intl.DateTimeFormat("en-US", { hour: "2-digit", minute: "2-digit", second: "2-digit", hour12: false, timeZone: TZ });
