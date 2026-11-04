@@ -572,12 +572,20 @@
     const photos = (tl.photos || []).filter(Boolean);
     const stepEls = $$(".step", steps);
     // the step in focus is the one crossing this line; lower on phones, where the timelapse sits on top
-    const narrow = matchMedia("(max-width: 860px)").matches;
-    const FOCUS = narrow ? 0.72 : 0.5;
-    const io = new IntersectionObserver((entries) => {
-      for (const e of entries) e.target.classList.toggle("on", e.isIntersecting);
-    }, { rootMargin: `-${FOCUS * 100 - 5}% 0px -${95 - FOCUS * 100}% 0px` });
-    stepEls.forEach((el) => io.observe(el));
+    // phone or desktop framing; re-checked when the window crosses the breakpoint
+    const phone = matchMedia("(max-width: 860px)");
+    let narrow, FOCUS, io;
+    function watchSteps() {
+      narrow = phone.matches;
+      FOCUS = narrow ? 0.72 : 0.5;
+      io?.disconnect();
+      io = new IntersectionObserver((entries) => {
+        for (const e of entries) e.target.classList.toggle("on", e.isIntersecting);
+      }, { rootMargin: `-${FOCUS * 100 - 5}% 0px -${95 - FOCUS * 100}% 0px` });
+      stepEls.forEach((el) => io.observe(el));
+    }
+    watchSteps();
+    phone.addEventListener("change", watchSteps);
     if (photos.length < 2) { section.classList.add("no-lapse"); stepEls.forEach((el) => el.classList.add("on")); return; }
 
     const t0 = toHours(tl.first_photo_time, 7), t1 = toHours(tl.last_photo_time, 18.5);
