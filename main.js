@@ -621,32 +621,42 @@
       bar.style.width = `${day * 100}%`;
     }
 
-    // the day plays on its own, looping, whenever the section is on screen
+    // on the intro the day plays on its own, looping; once the plot cards arrive, scrolling sets the time
+    // (each card gets its own part of the day) and the picture glides there
     const DAY_MS = 16000;
-    let playing = false, played = 0, last = 0, playRaf;
-    const play = (now) => {
-      if (!playing) return;
-      played += Math.min(now - (last || now), 100); last = now;
-      show((played / DAY_MS) % 1, true);
-      playRaf = requestAnimationFrame(play);
+    const n = frames.length;
+    let target = 0, auto = true, loop = 0, cur = 0, last = 0, raf, onScreen = false;
+    const tick = (now) => {
+      const dt = Math.min(now - (last || now), 100); last = now;
+      if (auto) {
+        loop = (loop + dt / DAY_MS) % 1;
+        show(loop, true);
+        cur = Math.min(1, (loop * n) / (n - 1));
+      } else {
+        cur += (target - cur) * (1 - Math.exp(-dt / 180));
+        show(cur);
+        loop = (cur * (n - 1)) / n; // so the loop picks up from here if they scroll back to the intro
+      }
+      if (onScreen) raf = requestAnimationFrame(tick);
     };
     if (!reduceMotion) {
       new IntersectionObserver(([e]) => {
-        playing = e.isIntersecting;
-        cancelAnimationFrame(playRaf);
-        if (playing) { last = 0; playRaf = requestAnimationFrame(play); }
+        onScreen = e.isIntersecting;
+        cancelAnimationFrame(raf);
+        if (onScreen) { last = 0; raf = requestAnimationFrame(tick); }
       }).observe(section);
     }
 
     function update() {
       frame();
-      if (!reduceMotion) return;
-      // with reduced motion nothing plays: scrolling moves through the day instead
       // 0 when the first step reaches the focus line, 1 when the last one does
-      const first = stepEls[0].getBoundingClientRect(), last = stepEls.at(-1).getBoundingClientRect();
+      const first = stepEls[0].getBoundingClientRect(), lastStep = stepEls.at(-1).getBoundingClientRect();
       const mid = innerHeight * FOCUS;
-      const a = first.top + first.height / 2, b = last.top + last.height / 2;
-      show(Math.min(1, Math.max(0, (mid - a) / (b - a || 1))));
+      const a = first.top + first.height / 2, b = lastStep.top + lastStep.height / 2;
+      const raw = (mid - a) / (b - a || 1);
+      target = Math.min(1, Math.max(0, raw));
+      auto = raw < 0.04; // still on the intro
+      if (reduceMotion) show(target); // nothing plays on its own; scrolling moves through the day
     }
     let queued = false;
     const onScroll = () => { if (!queued) { queued = true; requestAnimationFrame(() => { queued = false; update(); }); } };
