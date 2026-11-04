@@ -66,19 +66,54 @@
     }
   }
 
-  // now and then in daylight a small ufo drifts across the sky
+  // now and then in daylight a small ufo drifts across the sky; if anything's been planted,
+  // it stops over a flower, beams it up and leaves with it
   let ufo = null, nextUfo = 6000 + Math.random() * 10000;
+  const APPROACH = 3500, BEAM = 2800, LEAVE = 3000;
   function drawUfo(t, r, g, b) {
     if (!ufo) {
       if (t < nextUfo || night > 0.3 || !t) return;
-      const ltr = Math.random() < 0.5;
-      ufo = { t0: t, dur: 7000 + Math.random() * 5000, ltr, y: H * (0.07 + Math.random() * (HORIZON - 0.2)), s: 0.8 + Math.random() * 0.5 };
+      const target = flowers.length ? flowers[Math.floor(Math.random() * flowers.length)] : null;
+      const ltr = target ? target.x > W / 2 : Math.random() < 0.5; // come in from the far side
+      ufo = {
+        t0: t, ltr, target, s: 0.8 + Math.random() * 0.5,
+        dur: target ? APPROACH + BEAM + LEAVE : 7000 + Math.random() * 5000,
+        y: H * (0.07 + Math.random() * (HORIZON - 0.2)),
+      };
     }
-    const k = (t - ufo.t0) / ufo.dur;
+    const e = t - ufo.t0, k = e / ufo.dur;
     if (k >= 1) { ufo = null; nextUfo = t + 15000 + Math.random() * 30000; return; }
     const s = ufo.s, x0 = -40 * s, x1 = W + 40 * s;
-    const x = ufo.ltr ? x0 + (x1 - x0) * k : x1 - (x1 - x0) * k;
-    const y = ufo.y + Math.sin(k * Math.PI * 6) * 6 + Math.sin(k * Math.PI * 1.3) * 14; // a bit of a wobble
+    const [from, to] = ufo.ltr ? [x0, x1] : [x1, x0];
+    let x, beam = 0;
+    const f = ufo.target;
+    if (!f) x = from + (to - from) * k;
+    else if (e < APPROACH) x = from + (f.x - from) * ease(e / APPROACH);
+    else if (e < APPROACH + BEAM) {
+      x = f.x;
+      const kb = (e - APPROACH) / BEAM;
+      beam = Math.min(1, kb * 5, (1 - kb) * 6);
+      f.lift = ease(Math.min(1, Math.max(0, (kb - 0.15) / 0.7)));
+    } else {
+      const i = flowers.indexOf(f);
+      if (i >= 0) flowers.splice(i, 1); // it's aboard
+      const kl = (e - APPROACH - BEAM) / LEAVE;
+      x = f.x + (to - f.x) * kl * kl;
+    }
+    const still = beam ? 0.3 : 1;
+    const y = ufo.y + (Math.sin(e / 400) * 6 + Math.sin(e / 1500) * 14) * still; // a bit of a wobble
+    ufo.at = { x, y };
+    if (beam && f) {
+      const [ar, ag, ab] = rgb(css("--accent"));
+      const grad = ctx.createLinearGradient(0, y, 0, f.y);
+      grad.addColorStop(0, `rgba(${ar},${ag},${ab},${0.4 * beam * (1 - night)})`);
+      grad.addColorStop(1, `rgba(${ar},${ag},${ab},${0.08 * beam * (1 - night)})`);
+      ctx.fillStyle = grad;
+      ctx.beginPath();
+      ctx.moveTo(x - 6 * s, y + 3 * s); ctx.lineTo(x + 6 * s, y + 3 * s);
+      ctx.lineTo(f.x + 26, f.y + 4); ctx.lineTo(f.x - 26, f.y + 4);
+      ctx.closePath(); ctx.fill();
+    }
     ctx.save();
     ctx.globalAlpha = 1 - night;
     ctx.translate(x, y);
@@ -171,6 +206,14 @@
     fctx.strokeStyle = css("--accent-2");
     for (const f of flowers) {
       f.g = Math.min(1, f.g + 0.03);
+      if (f.lift && ufo?.at) {
+        // being beamed up: rise toward the ufo, shrinking and turning
+        fctx.save();
+        fctx.translate(f.x + (ufo.at.x - f.x) * f.lift, f.y + (ufo.at.y + 6 - f.y) * f.lift);
+        fctx.rotate(f.lift * 2.5);
+        fctx.scale(1 - 0.75 * f.lift, 1 - 0.75 * f.lift);
+        fctx.translate(-f.x, -f.y);
+      }
       const sway = Math.sin(t * 0.002 + f.x * 0.05) * 0.12;
       const h = f.h * f.g;
       const hx = f.x + Math.sin(sway) * h, hy = f.y - Math.cos(sway) * h;
@@ -184,6 +227,7 @@
       }
       fctx.fillStyle = "#e8d38c";
       fctx.beginPath(); fctx.arc(hx, hy, 2.4 * f.g, 0, Math.PI * 2); fctx.fill();
+      if (f.lift && ufo?.at) fctx.restore();
     }
   }
 
