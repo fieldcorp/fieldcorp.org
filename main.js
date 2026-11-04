@@ -607,20 +607,46 @@
       st.setProperty("--rad", `${6 * z}px`);
       steps.style.opacity = Math.max(0, (z - 0.6) / 0.4); // text arrives once the frame has nearly settled
     }
+    // show the day at p (0 first photo … 1 last), blending between neighbouring photos
+    function show(p, loop = false) {
+      const n = frames.length, f = p * (loop ? n : n - 1);
+      const i = Math.floor(f) % n, k = f - Math.floor(f);
+      const next = loop ? (i + 1) % n : i + 1; // when looping, the last photo fades back into the first
+      for (const j of shown) frames[j].style.opacity = 0;
+      frames[i].style.opacity = 1;
+      shown = [i];
+      if (frames[next] && next !== i) { frames[next].style.opacity = k; shown.push(next); }
+      const day = loop ? Math.min(1, f / (n - 1)) : p;
+      time.textContent = fmtHours(t0 + day * (t1 - t0));
+      bar.style.width = `${day * 100}%`;
+    }
+
+    // the day plays on its own, looping, whenever the section is on screen
+    const DAY_MS = 16000;
+    let playing = false, played = 0, last = 0, playRaf;
+    const play = (now) => {
+      if (!playing) return;
+      played += Math.min(now - (last || now), 100); last = now;
+      show((played / DAY_MS) % 1, true);
+      playRaf = requestAnimationFrame(play);
+    };
+    if (!reduceMotion) {
+      new IntersectionObserver(([e]) => {
+        playing = e.isIntersecting;
+        cancelAnimationFrame(playRaf);
+        if (playing) { last = 0; playRaf = requestAnimationFrame(play); }
+      }).observe(section);
+    }
+
     function update() {
       frame();
+      if (!reduceMotion) return;
+      // with reduced motion nothing plays: scrolling moves through the day instead
       // 0 when the first step reaches the focus line, 1 when the last one does
       const first = stepEls[0].getBoundingClientRect(), last = stepEls.at(-1).getBoundingClientRect();
       const mid = innerHeight * FOCUS;
       const a = first.top + first.height / 2, b = last.top + last.height / 2;
-      const p = Math.min(1, Math.max(0, (mid - a) / (b - a || 1)));
-      const f = p * (frames.length - 1), i = Math.floor(f), k = f - i;
-      for (const j of shown) frames[j].style.opacity = 0;
-      frames[i].style.opacity = 1;
-      shown = [i];
-      if (frames[i + 1]) { frames[i + 1].style.opacity = k; shown.push(i + 1); } // blend into the next frame
-      time.textContent = fmtHours(t0 + p * (t1 - t0));
-      bar.style.width = `${p * 100}%`;
+      show(Math.min(1, Math.max(0, (mid - a) / (b - a || 1))));
     }
     let queued = false;
     const onScroll = () => { if (!queued) { queued = true; requestAnimationFrame(() => { queued = false; update(); }); } };
