@@ -67,41 +67,43 @@
     }
   }
 
-  // now and then a small ufo drifts across the sky, day or night; if anything's been planted,
-  // it stops over a flower, beams it up and leaves with it
+  // now and then a small ufo drifts into the sky, day or night; if anything's been planted,
+  // it stops over a flower and beams it up. either way it leaves at light speed
   let ufo = null, nextUfo = 6000 + Math.random() * 10000;
-  const APPROACH = 3500, BEAM = 2800, LEAVE = 3000;
+  const BEAM = 2800, CHARGE = 550, ZIP = 260;
   function drawUfo(t, r, g, b) {
     if (!ufo) {
       if (t < nextUfo || !t) return;
       const target = flowers.length ? flowers[Math.floor(Math.random() * flowers.length)] : null;
       const ltr = target ? target.x > W / 2 : Math.random() < 0.5; // come in from the far side
+      const stop = target ? target.x : W * (ltr ? 0.35 + Math.random() * 0.4 : 0.25 + Math.random() * 0.4);
+      const approach = target ? 3500 : 4500 + Math.random() * 2500;
       ufo = {
-        t0: t, ltr, target, s: 0.8 + Math.random() * 0.5,
-        dur: target ? APPROACH + BEAM + LEAVE : 7000 + Math.random() * 5000,
+        t0: t, ltr, target, stop, approach, s: 0.8 + Math.random() * 0.5,
+        dur: approach + (target ? BEAM : 0) + CHARGE + ZIP,
         y: H * (0.07 + Math.random() * (HORIZON - 0.2)),
       };
     }
-    const e = t - ufo.t0, k = e / ufo.dur;
-    if (k >= 1) { ufo = null; nextUfo = t + 15000 + Math.random() * 30000; return; }
-    const s = ufo.s, x0 = -40 * s, x1 = W + 40 * s;
-    const [from, to] = ufo.ltr ? [x0, x1] : [x1, x0];
-    let x, beam = 0;
-    const f = ufo.target;
-    if (!f) x = from + (to - from) * k;
-    else if (e < APPROACH) x = from + (f.x - from) * ease(e / APPROACH);
-    else if (e < APPROACH + BEAM) {
-      x = f.x;
-      const kb = (e - APPROACH) / BEAM;
+    const e = t - ufo.t0;
+    if (e >= ufo.dur) { ufo = null; nextUfo = t + 15000 + Math.random() * 30000; return; }
+    const s = ufo.s, f = ufo.target, dir = ufo.ltr ? 1 : -1;
+    const from = ufo.ltr ? -40 * s : W + 40 * s;
+    const beamEnd = ufo.approach + (f ? BEAM : 0), chargeEnd = beamEnd + CHARGE;
+    let x = ufo.stop, beam = 0, zip = 0, charge = 0;
+    if (e < ufo.approach) x = from + (ufo.stop - from) * ease(e / ufo.approach);
+    else if (e < beamEnd) {
+      const kb = (e - ufo.approach) / BEAM;
       beam = Math.min(1, kb * 5, (1 - kb) * 6);
       f.lift = ease(Math.min(1, Math.max(0, (kb - 0.15) / 0.7)));
     } else {
-      const i = flowers.indexOf(f);
-      if (i >= 0) flowers.splice(i, 1); // it's aboard
-      const kl = (e - APPROACH - BEAM) / LEAVE;
-      x = f.x + (to - f.x) * kl * kl;
+      if (f) { const i = flowers.indexOf(f); if (i >= 0) flowers.splice(i, 1); } // it's aboard
+      if (e < chargeEnd) charge = (e - beamEnd) / CHARGE;
+      else {
+        zip = (e - chargeEnd) / ZIP;
+        x = ufo.stop + dir * Math.pow(zip, 2) * (W + 200); // gone in a blink
+      }
     }
-    const still = beam ? 0.3 : 1;
+    const still = beam || charge ? 0.3 : 1;
     const y = ufo.y + (Math.sin(e / 400) * 6 + Math.sin(e / 1500) * 14) * still; // a bit of a wobble
     ufo.at = { x, y };
     if (beam && f) {
@@ -124,18 +126,33 @@
       ctx.fillStyle = haze; ctx.fillRect(left, top, width, bottom - top);
       ctx.restore();
     }
+    if (zip) {
+      // light speed: a streak back to where it jumped from, and a pop of light there
+      const streak = ctx.createLinearGradient(ufo.stop, 0, x, 0);
+      streak.addColorStop(0, `rgba(${r},${g},${b},0)`);
+      streak.addColorStop(1, `rgba(${r},${g},${b},${0.7 * (1 - zip * 0.5)})`);
+      ctx.strokeStyle = streak; ctx.lineCap = "round";
+      ctx.lineWidth = 3 * s; ctx.beginPath(); ctx.moveTo(ufo.stop, y); ctx.lineTo(x, y); ctx.stroke();
+      ctx.lineWidth = 1; ctx.beginPath(); ctx.moveTo(ufo.stop, y - 4 * s); ctx.lineTo(x, y - 4 * s); ctx.stroke();
+      const pop = ctx.createRadialGradient(ufo.stop, y, 0, ufo.stop, y, 30 * s);
+      pop.addColorStop(0, `rgba(255,255,255,${0.8 * (1 - zip)})`);
+      pop.addColorStop(1, "rgba(255,255,255,0)");
+      ctx.fillStyle = pop; ctx.beginPath(); ctx.arc(ufo.stop, y, 30 * s, 0, Math.PI * 2); ctx.fill();
+    }
     ctx.save();
-    ctx.translate(x, y);
-    ctx.rotate(Math.sin(k * Math.PI * 6 + 0.6) * 0.08 * (ufo.ltr ? 1 : -1));
+    ctx.translate(x + (charge ? (Math.random() - 0.5) * 2 * charge : 0), y);
+    // drifting: a gentle rock. charging: lean back. zipping: stretched thin along the way it's going
+    ctx.rotate(charge || zip ? -0.18 * dir * Math.min(1, charge * 2 || 1) : Math.sin(e / 330 + 0.6) * 0.08 * dir);
+    if (zip) ctx.scale(1 + 4 * zip, 1 - 0.5 * zip);
     ctx.fillStyle = `rgba(${r},${g},${b},.28)`; // glass dome
     ctx.strokeStyle = `rgb(${r},${g},${b})`; ctx.lineWidth = 1.2;
     ctx.beginPath(); ctx.ellipse(0, -3 * s, 7 * s, 7 * s, 0, Math.PI, 0); ctx.fill(); ctx.stroke();
     ctx.fillStyle = `rgb(${r},${g},${b})`; // saucer
     ctx.beginPath(); ctx.ellipse(0, 0, 18 * s, 4.5 * s, 0, 0, Math.PI * 2); ctx.fill();
-    ctx.fillStyle = css("--accent"); // lights chasing along the rim
-    const lit = Math.floor(t / 220) % 4;
+    ctx.fillStyle = css("--accent"); // lights chasing along the rim, racing while it charges
+    const lit = Math.floor(t / (charge || zip ? 50 : 220)) % 4;
     for (let i = 0; i < 4; i++) {
-      ctx.globalAlpha = i === lit ? 1 : 0.35;
+      ctx.globalAlpha = i === lit || zip ? 1 : 0.35;
       ctx.beginPath(); ctx.arc((i - 1.5) * 8 * s, 0.5 * s, 1.6 * s, 0, Math.PI * 2); ctx.fill();
     }
     ctx.restore();
