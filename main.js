@@ -571,7 +571,8 @@
     const section = $("#field"), steps = $(".steps", section);
     const photos = (tl.photos || []).filter(Boolean);
     const stepEls = $$(".step", steps);
-    const FOCUS = 0.5; // the step in focus is the one crossing the middle of the screen
+    // the step in focus is the one crossing this line; lower on phones, where the timelapse sits on top
+    const FOCUS = matchMedia("(max-width: 860px)").matches ? 0.72 : 0.5;
     const io = new IntersectionObserver((entries) => {
       for (const e of entries) e.target.classList.toggle("on", e.isIntersecting);
     }, { rootMargin: `-${FOCUS * 100 - 5}% 0px -${95 - FOCUS * 100}% 0px` });
