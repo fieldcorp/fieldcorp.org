@@ -959,7 +959,7 @@
       if (hour) labels.push({ a, text: pad((m / 60) % 24) });
     }
     el.innerHTML = `<svg viewBox="-1.2 -1.2 2.4 2.4" aria-hidden="true">
-      <circle r="1" class="ring"/><circle r="0.74" class="ring faint"/>
+      <circle r="1" class="ring" pathLength="1" transform="rotate(90)"/><circle r="0.74" class="ring faint" pathLength="1" transform="rotate(90)"/>
       <g class="bezel">${ticks.join("")}${labels.map((l) => `<text x="${(Math.cos(l.a) * 0.64).toFixed(3)}" y="${(Math.sin(l.a) * 0.64).toFixed(3)}">${l.text}</text>`).join("")}</g>
       <path class="pointer" d="M-1.16 0 H-0.76 M-1.16 -0.05 L-1.06 0 L-1.16 0.05"/>
       <text class="readout-label" x="-1.24" y="-0.13">time of day</text>
@@ -967,18 +967,51 @@
     </svg>`;
     root.closest(".branch").append(el);
     const bezel = el.querySelector(".bezel"), texts = $$(".bezel text", el), readout = el.querySelector(".readout");
-    let p = 0;
+    const [ring, inner] = $$(".ring", el), lines = $$(".bezel line", el), last = [el.querySelector(".pointer"), readout, el.querySelector(".readout-label")];
+    let p = 0, wind = 0;
+    function turnTo() {
+      const rot = 180 - p * SPAN - wind; // the time p sits under the pointer at 180°
+      bezel.setAttribute("transform", `rotate(${rot})`);
+      // keep the hour numbers upright as the bezel turns
+      texts.forEach((t) => t.setAttribute("transform", `rotate(${-rot} ${t.getAttribute("x")} ${t.getAttribute("y")})`));
+    }
     const api = {
       onturn: null,
-      set(to, time) {
-        p = to;
-        const rot = 180 - p * SPAN; // the time p sits under the pointer at 180°
-        bezel.setAttribute("transform", `rotate(${rot})`);
-        // keep the hour numbers upright as the bezel turns
-        texts.forEach((t) => t.setAttribute("transform", `rotate(${-rot} ${t.getAttribute("x")} ${t.getAttribute("y")})`));
-        readout.textContent = time;
-      },
+      set(to, time) { p = to; turnTo(); readout.textContent = time; },
     };
+    // it builds as the section scrolls in (k 0 → 1): the rings draw from the bottom round the visible half,
+    // the ticks and hours come in in order while the bezel winds into place, then the pointer and the time
+    const clamp01 = (v) => Math.min(1, Math.max(0, v));
+    function build(k) {
+      ring.style.setProperty("--draw", k < 0.35 ? (k / 0.35) * 0.5 : 1); // half the ring is off screen
+      inner.style.setProperty("--draw", k < 0.1 ? 0 : k < 0.45 ? ((k - 0.1) / 0.35) * 0.5 : 1);
+      lines.forEach((l, i) => l.style.setProperty("--a", clamp01((k - 0.25 - 0.45 * (i / lines.length)) / 0.08)));
+      texts.forEach((t, i) => t.style.setProperty("--a", clamp01((k - 0.32 - 0.45 * (i / texts.length)) / 0.1)));
+      const end = clamp01((k - 0.8) / 0.15);
+      last.forEach((x) => x.style.setProperty("--a", end));
+      el.style.setProperty("--a", clamp01(k / 0.3));
+      el.style.setProperty("--px", 2.4 / (el.clientWidth || 500)); // one screen pixel in the dial's units
+      wind = (1 - ease(k)) * 140;
+      turnTo();
+    }
+    if (reduceMotion) build(1);
+    else {
+      const section = root.closest(".branch");
+      let queued = false, built = -1;
+      const onScroll = () => {
+        if (queued) return;
+        queued = true;
+        requestAnimationFrame(() => {
+          queued = false;
+          const top = section.getBoundingClientRect().top;
+          const k = clamp01((innerHeight * 0.9 - top) / (innerHeight * 0.75)); // done once the section is nearly in place
+          if (k !== built) { built = k; build(k); }
+        });
+      };
+      addEventListener("scroll", onScroll, { passive: true });
+      addEventListener("resize", () => { built = -1; onScroll(); });
+      onScroll();
+    }
     const turn = (to, done) => api.onturn?.(Math.min(1, Math.max(0, to)), done);
     const angle = (e) => { const r = el.getBoundingClientRect(); return Math.atan2(e.clientY - (r.top + r.height / 2), e.clientX - (r.left + r.width / 2)) * 180 / Math.PI; };
     let drag = null;
