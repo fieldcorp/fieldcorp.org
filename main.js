@@ -945,6 +945,60 @@
     update();
   }
 
+  // a thin compass bezel for the time of day, half off the right edge. the day runs around SPAN degrees
+  // of it; the time under the fixed pointer (on the left) is the one shown. drag, scroll or use the keys
+  function compass(root, t0, t1) {
+    const SPAN = 250, NS = "http://www.w3.org/2000/svg";
+    const el = document.createElement("div");
+    el.className = "compass";
+    const ticks = [], labels = [];
+    for (let m = Math.ceil(t0 * 6) * 10; m <= t1 * 60; m += 10) {
+      const a = ((m / 60 - t0) / (t1 - t0)) * SPAN * Math.PI / 180, hour = m % 60 === 0, half = m % 30 === 0;
+      const r0 = hour ? 0.8 : half ? 0.86 : 0.9;
+      ticks.push(`<line x1="${(Math.cos(a) * r0).toFixed(3)}" y1="${(Math.sin(a) * r0).toFixed(3)}" x2="${(Math.cos(a) * 0.97).toFixed(3)}" y2="${(Math.sin(a) * 0.97).toFixed(3)}"${hour ? ' class="hour"' : ""}/>`);
+      if (hour) labels.push({ a, text: pad((m / 60) % 24) });
+    }
+    el.innerHTML = `<svg viewBox="-1.2 -1.2 2.4 2.4" aria-hidden="true">
+      <circle r="1" class="ring"/><circle r="0.74" class="ring faint"/>
+      <g class="bezel">${ticks.join("")}${labels.map((l) => `<text x="${(Math.cos(l.a) * 0.64).toFixed(3)}" y="${(Math.sin(l.a) * 0.64).toFixed(3)}">${l.text}</text>`).join("")}</g>
+      <path class="pointer" d="M-1.16 0 H-0.76 M-1.16 -0.05 L-1.06 0 L-1.16 0.05"/>
+      <text class="readout-label" x="-1.24" y="-0.13">time of day</text>
+      <text class="readout" x="-1.24" y="0.01">--:--</text>
+    </svg>`;
+    root.closest(".branch").append(el);
+    const bezel = el.querySelector(".bezel"), texts = $$(".bezel text", el), readout = el.querySelector(".readout");
+    let p = 0;
+    const api = {
+      onturn: null,
+      set(to, time) {
+        p = to;
+        const rot = 180 - p * SPAN; // the time p sits under the pointer at 180°
+        bezel.setAttribute("transform", `rotate(${rot})`);
+        // keep the hour numbers upright as the bezel turns
+        texts.forEach((t) => t.setAttribute("transform", `rotate(${-rot} ${t.getAttribute("x")} ${t.getAttribute("y")})`));
+        readout.textContent = time;
+      },
+    };
+    const turn = (to, done) => api.onturn?.(Math.min(1, Math.max(0, to)), done);
+    const angle = (e) => { const r = el.getBoundingClientRect(); return Math.atan2(e.clientY - (r.top + r.height / 2), e.clientX - (r.left + r.width / 2)) * 180 / Math.PI; };
+    let drag = null;
+    el.addEventListener("pointerdown", (e) => {
+      drag = { a: angle(e), p };
+      el.setPointerCapture(e.pointerId); el.classList.add("turning");
+    });
+    el.addEventListener("pointermove", (e) => {
+      if (!drag) return;
+      let d = angle(e) - drag.a;
+      d = ((d + 540) % 360) - 180; // the short way round
+      drag.a += d; drag.p -= d / SPAN; // turning the bezel clockwise winds the day back
+      turn(drag.p, false);
+    });
+    const end = () => { if (!drag) return; drag = null; el.classList.remove("turning"); turn(p, true); };
+    el.addEventListener("pointerup", end);
+    el.addEventListener("pointercancel", end);
+    return api;
+  }
+
   function initSundial(tl) {
     const root = $(".feature-sundial");
     if (!root) return;
@@ -962,12 +1016,21 @@
       $(".timelapse-frames", box).innerHTML = photos.map((src) => `<img src="${esc(src)}" alt="" decoding="async">`).join("");
       const frames = $$(".timelapse-frames img", box);
       range.min = 0; range.max = photos.length - 1; range.step = 1;
-      const show = (i) => {
+      const dial = compass(root, t0, t1);
+      const last = photos.length - 1;
+      const show = (i, p = i / last) => {
         frames.forEach((f, j) => f.classList.toggle("on", j === i));
         out.textContent = fmtHours(timeAt(i));
+        dial.set(p, out.textContent);
       };
-      range.value = Math.round(Math.min(Math.max((NOW_H - t0) / (t1 - t0), 0), 1) * (photos.length - 1));
+      range.value = Math.round(Math.min(Math.max((NOW_H - t0) / (t1 - t0), 0), 1) * last);
+      // the slider stays for keyboards and screen readers; the compass turns it
       range.addEventListener("input", () => show(+range.value));
+      dial.onturn = (p, done) => {
+        const i = Math.round(p * last);
+        range.value = i;
+        show(i, done ? i / last : p); // turns smoothly under the finger, settles on a photo when let go
+      };
       show(+range.value);
       return;
     }

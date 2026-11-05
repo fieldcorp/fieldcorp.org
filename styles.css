@@ -353,6 +353,33 @@ section, footer { scroll-margin-top: 40px; }
   color: #f6f3e7; text-shadow: 0 1px 8px rgba(0, 0, 0, .4);
 }
 .branch-bg .slider input { accent-color: #f6f3e7; }
+/* with the compass, the slider is only there for keyboards and screen readers */
+.branch-bg:has(.compass) .slider {
+  position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap;
+}
+/* the time-of-day compass: thin lines, centred on the right edge so half of it is cut off */
+.compass {
+  --r: clamp(150px, 21vw, 290px);
+  position: absolute; right: calc(-1 * var(--r)); bottom: 48px; width: calc(2 * var(--r)); height: calc(2 * var(--r));
+  touch-action: none; cursor: grab; color: #f6f3e7; user-select: none; -webkit-user-select: none;
+}
+.compass.turning { cursor: grabbing; }
+.compass svg { display: block; width: 100%; height: 100%; overflow: visible; filter: drop-shadow(0 1px 6px rgba(0, 0, 0, .35)); }
+.compass .ring, .compass line, .compass .pointer { fill: none; stroke: currentColor; stroke-width: 1; vector-effect: non-scaling-stroke; }
+.compass .ring { opacity: .7; }
+.compass .ring.faint { opacity: .3; }
+.compass line { opacity: .55; }
+.compass line.hour { opacity: 1; }
+.compass .pointer { stroke: var(--accent); stroke-width: 1.5; }
+.compass text { fill: currentColor; font-family: inherit; font-size: .075px; text-anchor: middle; dominant-baseline: middle; }
+.compass::before { /* a soft shade so the thin lines read on bright sky */
+  content: ""; position: absolute; inset: -20%; border-radius: 50%; pointer-events: none;
+  background: radial-gradient(closest-side, rgba(22, 20, 16, .42), rgba(22, 20, 16, .2) 70%, rgba(22, 20, 16, 0));
+}
+.compass .readout-label, .compass .readout { text-anchor: end; }
+.compass .readout-label { font-size: .055px; opacity: .75; }
+.compass .readout { font-size: .15px; font-variant-numeric: tabular-nums; }
+.branch-bg:has(#sun-range:focus-visible) .compass .ring:not(.faint) { stroke: var(--accent); opacity: 1; }
 
 /* table */
 .table-scene { position: relative; padding-top: 10px; }
