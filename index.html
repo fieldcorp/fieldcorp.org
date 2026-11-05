@@ -13,10 +13,24 @@
   <link href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible+Mono:wght@300;400;600&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="styles.css">
   <script>
+    // night between sunset and sunrise in the visitor's own timezone, until they pick with the toggle.
+    // we don't know where they are, so: solar noon around 12:00 (13:00 on daylight saving time),
+    // and the day as long as it is at 40° north (south, if their daylight saving falls in january)
+    window.fieldNight = function (d) {
+      d = d || new Date();
+      var y = d.getFullYear(), jan = new Date(y, 0, 1).getTimezoneOffset(), jul = new Date(y, 6, 1).getTimezoneOffset();
+      var lat = (jan < jul ? -40 : 40) * Math.PI / 180;
+      var dst = d.getTimezoneOffset() < Math.max(jan, jul);
+      var n = (d - new Date(y, 0, 0)) / 864e5;
+      var dec = -23.44 * Math.PI / 180 * Math.cos(2 * Math.PI * (n + 10) / 365);
+      var half = Math.acos(Math.max(-1, Math.min(1, -Math.tan(lat) * Math.tan(dec)))) * 12 / Math.PI + 0.1;
+      var h = d.getHours() + d.getMinutes() / 60, noon = 12 + (dst ? 1 : 0);
+      return h < noon - half || h >= noon + half;
+    };
     try {
       var t = localStorage.getItem("field-theme");
-      if (t === "night" || (!t && matchMedia("(prefers-color-scheme: dark)").matches)) document.documentElement.dataset.theme = "night";
-    } catch (e) {}
+      if (t === "night" || (!t && fieldNight())) document.documentElement.dataset.theme = "night";
+    } catch (e) { if (fieldNight()) document.documentElement.dataset.theme = "night"; }
   </script>
 </head>
 <body>

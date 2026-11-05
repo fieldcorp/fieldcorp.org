@@ -198,13 +198,31 @@ section, footer { scroll-margin-top: 40px; }
 .field.no-lapse .daylapse { display: none; }
 .field.no-lapse .steps { grid-column: 1; padding-top: 0; opacity: 1 !important; }
 /* the steps start one "zoom" below the top, so the intro arrives as the frame settles */
-.steps { grid-column: 2; grid-row: 1; position: relative; z-index: 1; padding: 60svh 0 20vh; }
-.step { min-height: 78svh; display: flex; flex-direction: column; justify-content: center; margin: 0; }
-.step:first-child { min-height: 100svh; }
-.step > * { width: 100%; transition: opacity .5s ease; }
-.steps .step:not(.on) > * { opacity: .28; }
-.step > .plot { min-height: 360px; }
-.intro-card { margin: 0; }
+.steps { grid-column: 2; grid-row: 1; position: relative; z-index: 1; padding: 60svh 0 10vh; }
+/* the plots stack like playing cards: each one the size of the frame, sticking a tab lower than the last,
+   so a strip of every card underneath stays in view (main.js sets --stack-top, --stack-h and --tab) */
+.steps { --stack-top: 96px; --stack-h: calc(100svh - 128px); --tab: 56px; }
+.step {
+  position: sticky; top: calc(var(--stack-top) + var(--i, 0) * var(--tab));
+  height: calc(var(--stack-h) - var(--i, 0) * var(--tab));
+  display: flex; flex-direction: column; margin: 0 0 6svh;
+}
+.step:last-child { margin-bottom: 30svh; }
+.step > * { width: 100%; height: 100%; }
+.step > .plot { min-height: 0; box-shadow: 0 -12px 28px -20px rgba(0, 0, 0, .5); }
+.step .plot-art { min-height: 0; }
+.step .plot-meta { order: -1; border-top: 0; border-bottom: 1px solid var(--line); padding-top: 10px; } /* the name sits in the strip that peeks out */
+.step .plot-meta h3 { margin-top: 2px; line-height: 1.25; }
+.step .plot-empty { background: var(--card); } /* cards are solid in the deck so the ones below don't show through */
+.step .flip { min-height: 0; }
+.intro-card {
+  margin: 0; max-width: none; display: flex; flex-direction: column;
+  background: var(--card); border: 1px solid var(--line); border-radius: var(--radius); padding: 18px 22px 26px;
+}
+.intro-card h2 { margin-top: auto; }
+.field.no-lapse .step { position: static; height: auto; margin-bottom: 24px; }
+.field.no-lapse .step > * { height: auto; }
+.field.no-lapse .step > .plot, .field.no-lapse .flip { min-height: 360px; }
 
 /* the open plot flips over to a pitch form */
 .flip { perspective: 1400px; min-height: 360px; }
@@ -465,9 +483,9 @@ section, footer { scroll-margin-top: 40px; }
   .field { grid-template-columns: 1fr; }
   .branch-bg::before, .branch-bg.branch-flip::before { background: linear-gradient(rgba(22, 20, 16, .58), rgba(22, 20, 16, .38) 55%, rgba(22, 20, 16, .55)); }
   .daylapse { z-index: 2; } /* on phones the cards slide under the framed timelapse */
+  .step .plot-no { display: none; } /* the strips are thin here, so they show the name */
+  .step .plot-meta { padding-top: 6px; }
   .steps { grid-column: 1; padding-top: 100svh; }
-  .step, .step:first-child { min-height: 62svh; }
-  .step > .plot { min-height: 300px; }
   .branch { grid-template-columns: 1fr; }
   .branch-flip .branch-copy { order: 0; }
   .more-grid { grid-template-columns: 1fr; }

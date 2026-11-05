@@ -358,12 +358,13 @@
     try { localStorage.setItem("field-theme", to); } catch (e) {}
     setTheme(to);
   });
-  // follow the device's setting until someone picks with the toggle
-  matchMedia("(prefers-color-scheme: dark)").addEventListener("change", (e) => {
+  // follow sunrise and sunset (fieldNight, in index.html) until someone picks with the toggle,
+  // so the page fades to night if the sun goes down while it's open
+  setInterval(() => {
     let picked = null;
     try { picked = localStorage.getItem("field-theme"); } catch (e) {}
-    if (!picked) setTheme(e.matches ? "night" : "day");
-  });
+    if (!picked) setTheme(fieldNight() ? "night" : "day");
+  }, 60000);
 
   // every so often at night a shooting star crosses the screen, left to right
   const sky = $(".shooting");
@@ -837,21 +838,11 @@
     const section = $("#field"), steps = $(".steps", section);
     const photos = (tl.photos || []).filter(Boolean);
     const stepEls = $$(".step", steps);
-    // the step in focus is the one crossing this line; lower on phones, where the timelapse sits on top
     // phone or desktop framing; re-checked when the window crosses the breakpoint
     const phone = matchMedia("(max-width: 860px)");
-    let narrow, FOCUS, io;
-    function watchSteps() {
-      narrow = phone.matches;
-      FOCUS = narrow ? 0.72 : 0.5;
-      io?.disconnect();
-      io = new IntersectionObserver((entries) => {
-        for (const e of entries) e.target.classList.toggle("on", e.isIntersecting);
-      }, { rootMargin: `-${FOCUS * 100 - 5}% 0px -${95 - FOCUS * 100}% 0px` });
-      stepEls.forEach((el) => io.observe(el));
-    }
-    watchSteps();
-    phone.addEventListener("change", watchSteps);
+    let narrow = phone.matches;
+    phone.addEventListener("change", () => { narrow = phone.matches; onScroll(); });
+    stepEls.forEach((el, i) => el.style.setProperty("--i", i)); // its place in the deck
     if (photos.length < 2) { section.classList.add("no-lapse"); stepEls.forEach((el) => el.classList.add("on")); return; }
 
     const t0 = toHours(tl.first_photo_time, 7), t1 = toHours(tl.last_photo_time, 18.5);
@@ -880,7 +871,18 @@
       st.setProperty("--cb", `${b * z}px`); st.setProperty("--cl", `${l * z}px`);
       st.setProperty("--rad", `${6 * z}px`);
       steps.style.opacity = Math.max(0, (z - 0.6) / 0.4); // text arrives once the frame has nearly settled
+      // the deck lines up with the frame (on phones it sits under the band); tabs shrink on short screens
+      const top = narrow ? t + innerHeight * 0.4 + 14 : t, h = innerHeight - top - (narrow ? 16 : b);
+      const tab = Math.round(Math.min(narrow ? 46 : 58, (h * 0.5) / Math.max(1, stepEls.length - 1)));
+      const key = `${top}|${h}|${tab}`;
+      if (key !== stackKey) {
+        stackKey = key; stack = { top, tab };
+        steps.style.setProperty("--stack-top", `${top}px`);
+        steps.style.setProperty("--stack-h", `${h}px`);
+        steps.style.setProperty("--tab", `${tab}px`);
+      }
     }
+    let stackKey = "", stack = { top: 96, tab: 56 };
     // show the day at p (0 first photo … 1 last), blending between neighbouring photos
     function show(p, loop = false) {
       const n = frames.length, f = p * (loop ? n : n - 1);
@@ -923,13 +925,17 @@
 
     function update() {
       frame();
-      // 0 when the first step reaches the focus line, 1 when the last one does
-      const first = stepEls[0].getBoundingClientRect(), lastStep = stepEls.at(-1).getBoundingClientRect();
-      const mid = innerHeight * FOCUS;
-      const a = first.top + first.height / 2, b = lastStep.top + lastStep.height / 2;
-      const raw = (mid - a) / (b - a || 1);
-      target = Math.min(1, Math.max(0, raw));
-      auto = raw < 0.04; // still on the intro
+      // how far the deck has been dealt: each card counts from entering the screen to landing on the stack
+      let dealt = 0;
+      stepEls.forEach((el, i) => {
+        if (!i) return;
+        const land = stack.top + i * stack.tab, y = el.getBoundingClientRect().top;
+        dealt += Math.min(1, Math.max(0, (innerHeight - y) / (innerHeight - land || 1)));
+      });
+      const on = Math.round(dealt);
+      stepEls.forEach((el, i) => el.classList.toggle("on", i === on));
+      target = Math.min(1, dealt / Math.max(1, stepEls.length - 1));
+      auto = dealt < 0.04; // still on the intro
       if (reduceMotion) show(target); // nothing plays on its own; scrolling moves through the day
     }
     let queued = false;
