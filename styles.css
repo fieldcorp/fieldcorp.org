@@ -131,7 +131,8 @@ p { margin: 0 0 1em; }
 
 /* ---------- hero ---------- */
 .hero {
-  position: relative; min-height: 100svh;
+  /* the full screen, including the strip under a phone browser's toolbar (svh stops above it) */
+  position: relative; min-height: 100vh; min-height: 100lvh;
   display: grid; place-items: center;
   padding: 120px var(--gutter) 80px;
   overflow: hidden;
@@ -159,6 +160,7 @@ p { margin: 0 0 1em; }
 
 .conditions {
   position: absolute; left: var(--gutter); bottom: 24px;
+  bottom: calc(24px + 100lvh - 100svh); /* stays clear of the phone toolbar */
   background: color-mix(in srgb, var(--band) 92%, transparent); color: var(--band-ink);
   border-radius: var(--radius); padding: 10px 14px; font-size: 11px; min-width: 230px;
 }
