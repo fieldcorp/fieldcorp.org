@@ -859,9 +859,10 @@
       const z = ease(Math.min(1, Math.max(0, -section.getBoundingClientRect().top / ZOOM)));
       const gutter = parseFloat(getComputedStyle(section).paddingLeft);
       let t, r, b, l = gutter;
-      // on phones the frame is a band at the top, so slide the picture up to keep the horizon in it
-      framesBox.style.transform = narrow ? `translateY(${-0.34 * innerHeight * z}px)` : "";
-      if (narrow) { t = 84; b = innerHeight - t - innerHeight * 0.4; r = gutter; }
+      // on phones the frame is a thin band at the top (the cards get most of the screen), with the picture centred in it
+      const band = Math.round(innerHeight * 0.22);
+      framesBox.style.transform = narrow ? `translateY(${(84 + band / 2 - innerHeight / 2) * z}px)` : "";
+      if (narrow) { t = 84; b = innerHeight - t - band; r = gutter; }
       else {
         t = 96; b = 32;
         r = innerWidth - (steps.getBoundingClientRect().left - parseFloat(getComputedStyle(section).columnGap));
@@ -872,7 +873,7 @@
       st.setProperty("--rad", `${6 * z}px`);
       steps.style.opacity = Math.max(0, (z - 0.6) / 0.4); // text arrives once the frame has nearly settled
       // the deck lines up with the frame (on phones it sits under the band); tabs shrink on short screens
-      const top = narrow ? t + innerHeight * 0.4 + 14 : t, h = innerHeight - top - (narrow ? 16 : b);
+      const top = narrow ? t + band + 12 : t, h = innerHeight - top - (narrow ? 16 : b);
       const tab = Math.round(Math.min(narrow ? 46 : 58, (h * 0.5) / Math.max(1, stepEls.length - 1)));
       const key = `${top}|${h}|${tab}`;
       if (key !== stackKey) {
