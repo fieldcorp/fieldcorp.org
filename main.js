@@ -858,23 +858,34 @@
       const ZOOM = innerHeight * 0.6;
       const z = ease(Math.min(1, Math.max(0, -section.getBoundingClientRect().top / ZOOM)));
       const gutter = parseFloat(getComputedStyle(section).paddingLeft);
-      let t, r, b, l = gutter;
-      // on phones the frame is a thin band at the top (the cards get most of the screen), with the picture centred in it
-      const band = Math.round(innerHeight * 0.22);
-      framesBox.style.transform = narrow ? `translateY(${(84 + band / 2 - innerHeight / 2) * z}px)` : "";
-      if (narrow) { t = 84; b = innerHeight - t - band; r = gutter; }
-      else {
-        t = 96; b = 32;
-        r = innerWidth - (steps.getBoundingClientRect().left - parseFloat(getComputedStyle(section).columnGap));
+      const NAV = 84;
+      if (narrow) {
+        // on phones the cards take the whole page: as the first one rises, the timelapse folds up from the bottom
+        // until it's gone, with the picture kept centred in what's left of it
+        const deckTop = NAV + 8, first = stepEls[0].getBoundingClientRect().top;
+        const edge = innerHeight * Math.min(1, Math.max(0, (first - deckTop) / (innerHeight - deckTop)));
+        framesBox.style.transform = `translateY(${(edge - innerHeight) / 2}px)`;
+        const st = box.style;
+        st.setProperty("--ct", "0px"); st.setProperty("--cr", "0px"); st.setProperty("--cl", "0px");
+        st.setProperty("--cb", `${innerHeight - edge}px`); st.setProperty("--rad", "0px");
+        box.style.visibility = edge < 1 ? "hidden" : "";
+        steps.style.opacity = 1;
+        setStack(deckTop, innerHeight - deckTop - 16, 46);
+        return;
       }
+      framesBox.style.transform = ""; box.style.visibility = "";
+      const t = 96, b = 32, l = gutter;
+      const r = innerWidth - (steps.getBoundingClientRect().left - parseFloat(getComputedStyle(section).columnGap));
       const st = box.style;
       st.setProperty("--ct", `${t * z}px`); st.setProperty("--cr", `${r * z}px`);
       st.setProperty("--cb", `${b * z}px`); st.setProperty("--cl", `${l * z}px`);
       st.setProperty("--rad", `${6 * z}px`);
       steps.style.opacity = Math.max(0, (z - 0.6) / 0.4); // text arrives once the frame has nearly settled
-      // the deck lines up with the frame (on phones it sits under the band); tabs shrink on short screens
-      const top = narrow ? t + band + 12 : t, h = innerHeight - top - (narrow ? 16 : b);
-      const tab = Math.round(Math.min(narrow ? 46 : 58, (h * 0.5) / Math.max(1, stepEls.length - 1)));
+      // the deck lines up with the frame; tabs shrink on short screens
+      setStack(t, innerHeight - t - b, 58);
+    }
+    function setStack(top, h, maxTab) {
+      const tab = Math.round(Math.min(maxTab, (h * 0.5) / Math.max(1, stepEls.length - 1)));
       const key = `${top}|${h}|${tab}`;
       if (key !== stackKey) {
         stackKey = key; stack = { top, tab };
